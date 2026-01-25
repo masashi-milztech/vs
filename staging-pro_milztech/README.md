@@ -1,29 +1,43 @@
 
-# StagingPro - 公開マニュアル（最新版）
+# StagingPro - 最終デプロイマニュアル
 
-ターミナルで `Authentication failed` と出た場合は、GitHubのセキュリティ制限（パスワード不可）によるものです。以下の**マウス操作**で進めるのが一番簡単です。
-
----
-
-## 🚀 【推奨】マウス操作でGitHubへアップロードする
-
-1. **GitHubを開く**: [https://github.com/masashi-milztech/vs](https://github.com/masashi-milztech/vs)
-2. **ボタンを押す**: `Add file` ＞ `Upload files` をクリック。
-3. **ファイルを選ぶ**:
-   - パソコンのフォルダ `staging-pro_milztech` を開きます。
-   - 中にあるファイル（`index.html`, `App.tsx`, `package.json`など）とフォルダ（`components`, `lib`など）を**すべて選択**します。
-4. **ドラッグ＆ドロップ**: 選択したものを、GitHub画面の「Drag files here」と書かれた枠内に放り込みます。
-5. **保存**: ページ下部の緑色のボタン `Commit changes` をクリックして完了！
+Supabase（データベース）の準備は完了しています！Cloudflareの設定を以下の通りに進めてください。
 
 ---
 
-## 🌐 公開後の設定 (Cloudflare Pages)
+## 🌐 Cloudflare Pages 公開設定
 
-アップロードが終わったら、Cloudflareの設定画面で以下の「環境変数」を登録してください。
-※これを入れないとアプリが動きません。
+1. **GitHubとの連携**:
+   - Cloudflareの画面で「Connect GitHub」を押します。
+   - **※もし反応がない場合**: ブラウザのアドレスバー右側を確認し、ポップアップがブロックされていないか確認してください。
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `VITE_RESEND_API_KEY`
+2. **リポジトリ選択**: `vs` を選択。
 
-設定後、再デプロイを行えばサイトが世界中に公開されます！
+3. **ビルド設定 (Build settings)**:
+   - **Framework preset**: `Vite`
+   - **Root directory**: `staging-pro_milztech` ← 【重要】リポジトリ内のフォルダ名を指定
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+
+4. **環境変数 (Environment variables)**:
+   以下の値を設定してください。
+   - `VITE_SUPABASE_URL`: (SupabaseのURL)
+   - `VITE_SUPABASE_ANON_KEY`: (SupabaseのKey)
+
+---
+
+## 🚀 公開後のトラブルシューティング
+
+### 画面が真っ白になったら
+もしサイトにアクセスして画面が真っ白な場合、Cloudflareの設定画面で以下を確認してください：
+
+1. **Root directory の設定ミス**:
+   - GitHubリポジトリの直下にファイルがある場合は、`Root directory` を **「空欄」** にして保存し、再度デプロイしてください。
+   - もし `staging-pro_milztech` というフォルダの中にファイルがある場合は、そのままでOKです。
+
+2. **ブラウザのキャッシュ**:
+   - 一度ブラウザを閉じて開き直すか、シークレットモードで試してみてください。
+
+### ログインについて
+1. サイトにアクセスし、ログイン画面下の「Join the studio circle」からメールアドレスとパスワードを入力して登録してください。
+2. 管理者（masashi@milz.tech または masashi@thisismerci.com）でログインすると、管理画面（Production Hub）が開きます。
