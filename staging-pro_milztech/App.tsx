@@ -148,7 +148,9 @@ const App: React.FC = () => {
           onDeliver={(id, dataUrl) => handleUpdateStatus(id, { resultDataUrl: dataUrl, status: user.role === 'admin' ? 'completed' : 'reviewing' })}
           onRefresh={() => loadSubmissions(user.id, user.role, user.editorRecordId)}
           onAssign={(id, editorId) => {
-            handleUpdateStatus(id, { assignedEditorId: editorId || undefined, status: editorId ? 'processing' : 'pending' });
+            // 文字列があればそのIDを、なければundefinedを渡す
+            const editorVal = editorId ? editorId : undefined;
+            handleUpdateStatus(id, { assignedEditorId: editorVal, status: editorId ? 'processing' : 'pending' });
           }}
           onApprove={(id) => handleUpdateStatus(id, { status: 'completed' })}
           onReject={(id, notes) => handleUpdateStatus(id, { status: 'processing', revisionNotes: notes })}
