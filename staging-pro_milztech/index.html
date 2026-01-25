@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-page: #F1F5F9; /* 視認性を高めるための背景色 */
+      --bg-page: #F1F5F9;
       --accent-color: #0F172A;
     }
     body { 
@@ -19,24 +19,16 @@
       -webkit-font-smoothing: antialiased;
     }
     .jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
-    
-    /* カードの深度表現 */
     .card-premium {
       background: #FFFFFF;
       border: 1px solid rgba(15, 23, 42, 0.05);
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     }
-    
-    /* スクロールバーの非表示 */
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    
-    /* フォーカス時のアクセント */
     input:focus, textarea:focus {
       border-color: var(--accent-color) !important;
       box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.03);
     }
-    
-    /* 選択アニメーション */
     .plan-selected {
       transform: scale(1.02);
       border-color: var(--accent-color) !important;
@@ -46,19 +38,18 @@
 <script type="importmap">
 {
   "imports": {
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.48.1",
-    "vite": "https://esm.sh/vite@^7.3.1",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.91.1"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 </head>
 <body>
   <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>
