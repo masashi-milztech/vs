@@ -35,7 +35,7 @@ export interface Submission {
   dataUrl: string; 
   resultDataUrl?: string; 
   instructions?: string; 
-  revisionNotes?: string; // 修正依頼内容
+  revisionNotes?: string; 
   referenceImages?: ReferenceImage[]; 
   timestamp: number;
   status: 'pending' | 'processing' | 'reviewing' | 'completed';
@@ -45,21 +45,21 @@ export interface Submission {
 export const PLAN_DETAILS = {
   [PlanType.FURNITURE_REMOVE]: {
     title: 'Furniture Removal',
-    description: 'Clean out existing furniture to show the room\'s full potential.',
-    icon: '✨',
-    price: '¥2,500'
+    description: 'Advanced removal of existing assets. We clean the digital canvas to reveal the structural potential of your space.',
+    price: '¥2,500',
+    number: '01'
   },
   [PlanType.FURNITURE_ADD]: {
     title: 'Furniture Addition',
-    description: 'Add modern furniture to empty rooms for a cozy atmosphere.',
-    icon: '🛋️',
-    price: '¥3,500'
+    description: 'Precision staging for vacant rooms. Curated sets selected by architectural visualizers to maximize market value.',
+    price: '¥3,500',
+    number: '02'
   },
   [PlanType.FURNITURE_BOTH]: {
     title: 'Full Staging (Both)',
-    description: 'Remove current furniture and replace with high-end staging items.',
-    icon: '🏠',
-    price: '¥5,000'
+    description: 'Complete spatial overhaul. Existing items are removed and replaced with elite, high-resolution digital staging.',
+    price: '¥5,000',
+    number: '03'
   }
 };
 
