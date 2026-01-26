@@ -77,6 +77,9 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       setPreviewUrl(null);
       setInstructions('');
       setReferenceImages([]);
+      
+      // オーダー完了時に最上部へスクロール
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error("Submit Error:", err);
       alert(`ORDER FAILED: ${err.message}`);
@@ -96,7 +99,11 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
           The studio designers have been assigned to your project.<br/>Monitor the progress in your archive below.
         </p>
         <button 
-          onClick={() => setShowSuccess(false)}
+          onClick={() => {
+            setShowSuccess(false);
+            // フォームに戻る際も最上部へスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           className="bg-slate-900 text-white px-12 py-5 rounded-3xl text-xs font-extrabold uppercase tracking-widest shadow-2xl hover:bg-black transition-all"
         >
           Start Another Room
