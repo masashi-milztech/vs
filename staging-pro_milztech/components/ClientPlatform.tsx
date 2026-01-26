@@ -49,11 +49,9 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
     try {
       const orderId = Math.random().toString(36).substr(2, 9);
       
-      // 1. 画像をストレージにアップロード
       const storagePath = `${user.id}/${orderId}_source.jpg`;
       const publicImageUrl = await db.storage.upload(storagePath, previewUrl);
 
-      // 2. リファレンス画像もアップロード（もしあれば）
       const uploadedReferences = await Promise.all(
         referenceImages.map(async (ref, idx) => {
           const refPath = `${user.id}/${orderId}_ref_${idx}.jpg`;
@@ -68,7 +66,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         plan: selectedPlan,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
-        dataUrl: publicImageUrl, // DBにはストレージのURLを保存
+        dataUrl: publicImageUrl,
         instructions: instructions.trim(),
         referenceImages: uploadedReferences,
         timestamp: Date.now(),
@@ -97,7 +95,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error("Submit Error:", err);
-      alert(`ORDER FAILED: ${err.message}\n※Storageの設定（バケット作成）が完了しているか確認してください。`);
+      alert(`ORDER FAILED: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -285,10 +283,9 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs">{PLAN_DETAILS[sub.plan].icon}</span>
-                      <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest truncate">
+                      <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest truncate">
                         {PLAN_DETAILS[sub.plan].title}
-                      </h4>
+                      </span>
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-3">
