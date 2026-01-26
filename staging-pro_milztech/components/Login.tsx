@@ -34,11 +34,10 @@ export const Login: React.FC<LoginProps> = () => {
         const { error: signInError, data } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) {
           if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error('Authentication Failed. \nPlease check your credentials or register as a new editor.');
+            throw new Error('Authentication Failed. \nPlease check your email or join the circle.');
           }
           throw signInError;
         }
-        // SIGNED_INイベントはApp.tsx側で検知してローダーを表示する
       } else {
         const { error: signUpError, data } = await supabase.auth.signUp({ 
           email, 
@@ -65,9 +64,8 @@ export const Login: React.FC<LoginProps> = () => {
         msg = 'SECURITY LOCK: Too many attempts. Please try again later.';
       }
       setError(msg);
-      setLoading(false); // エラー時はボタンを元に戻す
+      setLoading(false);
     }
-    // 注意: 成功時はApp.tsxの画面遷移が走るため、あえてloadingをfalseに戻さないことでボタン連打を防ぐ
   };
 
   return (
@@ -106,7 +104,7 @@ export const Login: React.FC<LoginProps> = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-8 py-5 rounded-[2rem] border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-slate-900 transition-all outline-none font-medium text-slate-900"
-              placeholder="editor@example.com"
+              placeholder="your@email.com"
               required
             />
           </div>
@@ -128,24 +126,22 @@ export const Login: React.FC<LoginProps> = () => {
             disabled={loading}
             className="w-full bg-slate-900 text-white py-6 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all shadow-2xl disabled:opacity-50"
           >
-            {loading ? 'LOGGING IN...' : (isLoginView ? 'Authenticate' : 'Request Access')}
+            {loading ? 'SYNCING...' : (isLoginView ? 'Authenticate' : 'Join the Studio')}
           </button>
         </form>
 
-        <div className="mt-16 pt-10 border-t border-slate-50 text-center">
+        <div className="mt-16 pt-10 border-t border-slate-50 text-center flex flex-col gap-8">
           <button
             onClick={() => { setIsLoginView(!isLoginView); setError(''); setSuccessMsg(''); }}
             className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-300 hover:text-slate-900 transition-colors"
           >
             {isLoginView ? "Join the studio circle →" : "Return to sign in →"}
           </button>
-        </div>
-
-        <div className="mt-8 text-center bg-slate-900/5 p-6 rounded-[2.5rem] border border-slate-100 space-y-2">
-          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-            Registered Editor? <br/>
-            First, use "Join the studio circle" to set your password.
-          </p>
+          
+          <div className="space-y-2">
+            <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Contact & Support</p>
+            <a href="mailto:info@milz.tech" className="text-[11px] font-bold text-slate-900 hover:underline tracking-widest">info@milz.tech</a>
+          </div>
         </div>
       </div>
     </div>
