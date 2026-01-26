@@ -235,6 +235,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                   />
                 </div>
 
+                {/* Fix: use setReferenceImages instead of setReferences to match the state setter defined above */}
                 <ReferenceImageUpload references={referenceImages} setReferences={setReferenceImages} />
 
                 <button
@@ -288,11 +289,24 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                       </span>
                     </div>
                     <div className="space-y-1.5">
-                      <div className="flex items-center gap-3">
-                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
-                          sub.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse'
-                        }`}>{sub.status}</span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(sub.timestamp).toLocaleDateString()}</span>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
+                            sub.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse'
+                          }`}>{sub.status}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5 px-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Ordered:</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(sub.timestamp).toLocaleDateString()}</span>
+                          </div>
+                          {sub.status !== 'completed' && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[8px] font-black text-blue-300 uppercase tracking-widest">Due Date:</span>
+                              <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest italic">{getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
