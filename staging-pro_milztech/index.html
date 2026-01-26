@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-page: #F1F5F9;
+      --bg-page: #FFFFFF;
       --accent-color: #0F172A;
     }
     body { 
@@ -33,6 +33,13 @@
       transform: scale(1.02);
       border-color: var(--accent-color) !important;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    }
+    @keyframes pulse-slow {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    .animate-pulse-slow {
+      animation: pulse-slow 15s ease-in-out infinite;
     }
   </style>
 <script type="importmap">
