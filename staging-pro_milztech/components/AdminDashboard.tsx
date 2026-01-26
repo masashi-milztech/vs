@@ -2,6 +2,7 @@
 import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Submission, PLAN_DETAILS, Editor, User, PlanType, getEstimatedDeliveryDate } from '../types';
 import { DetailModal } from './DetailModal';
+import { db } from '../lib/supabase';
 
 interface AdminDashboardProps {
   user: User;
@@ -32,8 +33,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [editorFilter, setEditorFilter] = useState<string>('all');
   const [viewingDetail, setViewingDetail] = useState<Submission | null>(null);
   const [showEditorManager, setShowEditorManager] = useState(false);
+  const [isUploadingResult, setIsUploadingResult] = useState(false);
   
-  // 修正依頼用のステート
   const [revisingSubmission, setRevisingSubmission] = useState<Submission | null>(null);
   const [revisionNotes, setRevisionNotes] = useState('');
 
@@ -60,13 +61,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     fileInputRef.current?.click();
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && activeSubmissionId.current) {
+      setIsUploadingResult(true);
+      const subId = activeSubmissionId.current;
       const reader = new FileReader();
-      reader.onloadend = () => {
-        onDeliver(activeSubmissionId.current!, reader.result as string);
-        activeSubmissionId.current = null;
+      reader.onloadend = async () => {
+        try {
+          const base64 = reader.result as string;
+          // 結果画像をストレージにアップロード
+          const path = `results/${subId}_final.jpg`;
+          const publicUrl = await db.storage.upload(path, base64);
+          
+          onDeliver(subId, publicUrl);
+          activeSubmissionId.current = null;
+        } catch (err) {
+          alert("Storage upload failed. Ensure bucket 'submissions' is created and public.");
+        } finally {
+          setIsUploadingResult(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -93,7 +107,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     <div className="max-w-[1600px] mx-auto py-8 px-6 lg:px-10 space-y-8">
       {viewingDetail && <DetailModal submission={viewingDetail} onClose={() => setViewingDetail(null)} />}
       
-      {/* 修正依頼モーダル */}
       {revisingSubmission && (
         <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 space-y-8">
@@ -178,7 +191,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
              <div className="flex items-center gap-3 bg-emerald-50 px-5 py-2.5 rounded-full border border-emerald-100">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                  LINKED: {editors.find(e => e.id === user.editorRecordId)?.name || 'ACTIVE'} (ID: {user.editorRecordId})
+                  LINKED: {editors.find(e => e.id === user.editorRecordId)?.name || 'ACTIVE'}
                 </span>
              </div>
            )}
@@ -281,7 +294,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           {new Date(sub.timestamp).toLocaleDateString()}
                         </span>
                         <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
-                          {new Date(sub.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          {new Date(sub.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </td>
@@ -318,7 +331,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                         {(sub.status === 'processing' || sub.status === 'reviewing' || sub.status === 'completed') && (
                           <div className="flex items-center gap-2">
-                            {/* 修正ボタン: 鉛筆アイコン。クリックでモーダルを開く */}
                             <button 
                               onClick={() => setRevisingSubmission(sub)} 
                               className="p-2 text-slate-300 hover:text-slate-900 transition-colors"
@@ -330,7 +342,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             </button>
                             
                             {(sub.status === 'processing' || sub.status === 'reviewing') && (
-                              <button onClick={() => handleDeliverClick(sub.id)} className="px-5 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md">Upload Result</button>
+                              <button 
+                                onClick={() => handleDeliverClick(sub.id)} 
+                                disabled={isUploadingResult}
+                                className="px-5 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md disabled:opacity-50"
+                              >
+                                {isUploadingResult ? 'Uploading...' : 'Upload Result'}
+                              </button>
                             )}
                           </div>
                         )}
