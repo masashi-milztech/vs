@@ -9,9 +9,10 @@ const ADMIN_EMAILS = [
 
 interface LoginProps {
   onLogin: (user: any) => void;
+  onBack?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = () => {
+export const Login: React.FC<LoginProps> = ({ onBack }) => {
   const [isLoginView, setIsLoginView] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -69,8 +70,18 @@ export const Login: React.FC<LoginProps> = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="max-w-lg w-full bg-white rounded-[3rem] shadow-2xl p-12 md:p-16 border border-slate-100 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-20 relative overflow-hidden">
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="absolute top-10 left-10 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all z-50 group"
+        >
+          <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" /></svg>
+          Back to Intro
+        </button>
+      )}
+
+      <div className="max-w-lg w-full bg-white rounded-[3rem] shadow-2xl p-12 md:p-16 border border-slate-100 relative overflow-hidden animate-in fade-in zoom-in duration-500">
         <div className="absolute top-0 right-0 w-32 h-32 bg-slate-900/5 rounded-bl-[5rem]"></div>
         
         <div className="text-center mb-16 relative z-10">
