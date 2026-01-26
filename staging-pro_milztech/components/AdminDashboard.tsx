@@ -238,7 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Preview</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Status</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Project Detail</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Order Date</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Schedule</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Assignee</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
@@ -288,14 +288,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                           </span>
                         </div>
                         <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">ID: {sub.id}</p>
-                        <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded inline-block">DUE: {getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                          {new Date(sub.timestamp).toLocaleDateString()}
-                        </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest w-8">Ord:</span>
+                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                            {new Date(sub.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[8px] font-black text-blue-300 uppercase tracking-widest w-8">Due:</span>
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
+                            {getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
