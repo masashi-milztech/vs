@@ -36,10 +36,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </span>
             </div>
             
-            <div className="relative w-full max-w-[100vw]">
-              {/* Responsive Font Size with clamp to prevent cutting off */}
-              <h1 className="text-[12vw] sm:text-7xl md:text-9xl lg:text-[11rem] xl:text-[13rem] font-black text-slate-900 tracking-tighter uppercase leading-[0.85] md:leading-[0.8] jakarta whitespace-nowrap">
-                Staging<span className="text-slate-300">Pro</span>
+            <div className="relative w-full">
+              <h1 className="text-[14vw] sm:text-7xl md:text-9xl lg:text-[11rem] xl:text-[13rem] font-black text-slate-900 tracking-tighter uppercase leading-[0.85] md:leading-[0.8] jakarta whitespace-nowrap px-4 overflow-hidden">
+                Staging<span className="text-slate-200">Pro</span>
               </h1>
             </div>
             
@@ -89,21 +88,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* NEW Showcase Section */}
+      {/* Showcase Section */}
       <section ref={showcaseRef} className="py-24 md:py-40 px-6 max-w-[1400px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-end gap-10 mb-20 md:mb-32">
           <div className="space-y-4">
             <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">The Archive</span>
             <h2 className="text-5xl md:text-8xl font-black text-slate-900 tracking-tighter uppercase jakarta">Visual <br/> Standards.</h2>
           </div>
-          <p className="max-w-md text-slate-400 font-medium leading-relaxed uppercase text-xs tracking-widest">
+          <p className="max-w-md text-slate-400 font-medium leading-relaxed uppercase text-[10px] tracking-[0.2em] md:tracking-widest">
             A selection of recent studio deliveries. From empty shells to fully realized living environments.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-20">
           <div className="space-y-8 group">
-            <div className="aspect-[4/5] rounded-[3rem] overflow-hidden bg-slate-100 relative">
+            <div className="aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-slate-100 relative">
                <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Showcase" />
                <div className="absolute top-8 left-8 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-[9px] font-black tracking-widest uppercase">Furniture Addition</div>
             </div>
@@ -113,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             </div>
           </div>
           <div className="space-y-8 group md:translate-y-24">
-            <div className="aspect-[4/5] rounded-[3rem] overflow-hidden bg-slate-100 relative">
+            <div className="aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-slate-100 relative">
                <img src="https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Showcase" />
                <div className="absolute top-8 left-8 bg-white/90 backdrop-blur px-4 py-2 rounded-full text-[9px] font-black tracking-widest uppercase">Removal & Staging</div>
             </div>
@@ -125,30 +124,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* Plans Section */}
-      <section className="py-24 md:py-48 px-6 max-w-[1400px] mx-auto space-y-20 md:space-y-32">
-        <div className="text-center space-y-4">
-          <h2 className="text-4xl md:text-7xl font-black text-slate-900 tracking-tighter uppercase jakarta">Production Plans</h2>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.5em]">Select your strategy to begin transformation</p>
-        </div>
+      {/* Production Plans */}
+      <section className="py-24 md:py-60 px-6 bg-white relative">
+        <div className="max-w-[1400px] mx-auto space-y-24 md:space-y-40">
+          <div className="text-center space-y-6">
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.6em]">Professional Frameworks</span>
+            <h2 className="text-5xl md:text-8xl font-black text-slate-900 tracking-tighter uppercase jakarta">Production Plans</h2>
+          </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {Object.entries(PLAN_DETAILS).map(([key, plan]) => (
-            <div key={key} className="group flex flex-col p-10 md:p-16 bg-white rounded-[4rem] border border-slate-100 hover:border-slate-900 transition-all duration-700 hover:shadow-2xl">
-              <div className="text-5xl md:text-6xl mb-8 md:mb-12 grayscale group-hover:grayscale-0 transition-all duration-500">{plan.icon}</div>
-              <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight jakarta">{plan.title}</h3>
-              <p className="text-slate-400 text-sm font-medium leading-relaxed mb-10 min-h-[4rem]">{plan.description}</p>
-              <div className="mt-auto flex items-end justify-between pt-8 border-t border-slate-50">
-                <div className="flex flex-col">
-                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1">Fee per image</span>
-                   <span className="text-3xl md:text-4xl font-black text-slate-900 jakarta">{plan.price}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 md:gap-16">
+            {Object.entries(PLAN_DETAILS).map(([key, plan]) => (
+              <div key={key} className="group relative flex flex-col p-10 md:p-14 bg-slate-50/50 border border-slate-100 hover:border-slate-900 transition-all duration-500 rounded-[3rem] hover:bg-white hover:shadow-2xl">
+                <div className="absolute top-10 right-10 text-6xl md:text-8xl font-black text-slate-100 group-hover:text-slate-50 transition-colors pointer-events-none jakarta select-none">
+                  {plan.number}
                 </div>
-                <button onClick={onStart} className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </button>
+                
+                <div className="relative space-y-12">
+                  <div className="space-y-6">
+                    <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tight jakarta leading-none">{plan.title}</h3>
+                    <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[200px] md:max-w-none">
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-8 pt-8 border-t border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Fee per image</span>
+                      <span className="text-4xl md:text-5xl font-black text-slate-900 jakarta tracking-tighter">{plan.price}</span>
+                    </div>
+                    
+                    <button 
+                      onClick={onStart} 
+                      className="w-full py-5 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all flex items-center justify-center gap-3"
+                    >
+                      Initialize
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -173,9 +189,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      <footer className="py-16 md:py-24 border-t border-slate-100 text-center px-6 bg-white">
-        <p className="text-[8px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.6em] mb-4">StagingPro International Studio</p>
-        <p className="text-[8px] md:text-[9px] font-bold text-slate-200 uppercase tracking-widest leading-loose">Visualizing the future of real estate assets since 2025.</p>
+      <footer className="py-16 md:py-24 border-t border-slate-100 text-center px-6 bg-white space-y-10">
+        <div className="space-y-4">
+          <p className="text-[8px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.6em]">StagingPro International Studio</p>
+          <p className="text-[8px] md:text-[9px] font-bold text-slate-200 uppercase tracking-widest leading-loose">Visualizing the future of real estate assets since 2025.</p>
+        </div>
+        <div className="pt-10 border-t border-slate-50 inline-block w-full max-w-xs md:max-w-none">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] opacity-40">Powered by milz.tech</span>
+        </div>
       </footer>
     </div>
   );
