@@ -6,6 +6,7 @@ import { FileUpload } from './FileUpload';
 import { DetailModal } from './DetailModal';
 import { ReferenceImageUpload } from './ReferenceImageUpload';
 import { sendStudioEmail, EMAIL_TEMPLATES } from '../lib/email';
+import { db } from '../lib/supabase';
 
 interface ClientPlatformProps {
   user: User;
@@ -46,15 +47,30 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
     setIsSubmitting(true);
     
     try {
+      const orderId = Math.random().toString(36).substr(2, 9);
+      
+      // 1. 画像をストレージにアップロード
+      const storagePath = `${user.id}/${orderId}_source.jpg`;
+      const publicImageUrl = await db.storage.upload(storagePath, previewUrl);
+
+      // 2. リファレンス画像もアップロード（もしあれば）
+      const uploadedReferences = await Promise.all(
+        referenceImages.map(async (ref, idx) => {
+          const refPath = `${user.id}/${orderId}_ref_${idx}.jpg`;
+          const url = await db.storage.upload(refPath, ref.dataUrl);
+          return { ...ref, dataUrl: url };
+        })
+      );
+
       const submission: Submission = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: orderId,
         ownerId: user.id,
         plan: selectedPlan,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
-        dataUrl: previewUrl,
+        dataUrl: publicImageUrl, // DBにはストレージのURLを保存
         instructions: instructions.trim(),
-        referenceImages: referenceImages,
+        referenceImages: uploadedReferences,
         timestamp: Date.now(),
         status: 'pending'
       };
@@ -78,11 +94,10 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       setInstructions('');
       setReferenceImages([]);
       
-      // オーダー完了時に最上部へスクロール
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
       console.error("Submit Error:", err);
-      alert(`ORDER FAILED: ${err.message}`);
+      alert(`ORDER FAILED: ${err.message}\n※Storageの設定（バケット作成）が完了しているか確認してください。`);
     } finally {
       setIsSubmitting(false);
     }
@@ -101,7 +116,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         <button 
           onClick={() => {
             setShowSuccess(false);
-            // フォームに戻る際も最上部へスクロール
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           className="bg-slate-900 text-white px-12 py-5 rounded-3xl text-xs font-extrabold uppercase tracking-widest shadow-2xl hover:bg-black transition-all"
@@ -118,7 +132,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         <DetailModal submission={viewingDetail} onClose={() => setViewingDetail(null)} />
       )}
 
-      {/* オーダー確認モーダル */}
       {isConfirming && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative p-8 md:p-12 space-y-8">
@@ -176,7 +189,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                 disabled={isSubmitting}
                 className="flex-1 py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all disabled:opacity-50"
               >
-                {isSubmitting ? 'Processing...' : 'Confirm and Order'}
+                {isSubmitting ? 'Uploading to Studio...' : 'Confirm and Order'}
               </button>
             </div>
           </div>
