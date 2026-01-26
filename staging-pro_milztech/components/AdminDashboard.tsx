@@ -70,14 +70,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       reader.onloadend = async () => {
         try {
           const base64 = reader.result as string;
-          // 結果画像をストレージにアップロード
           const path = `results/${subId}_final.jpg`;
           const publicUrl = await db.storage.upload(path, base64);
           
           onDeliver(subId, publicUrl);
           activeSubmissionId.current = null;
         } catch (err) {
-          alert("Storage upload failed. Ensure bucket 'submissions' is created and public.");
+          alert("Storage upload failed.");
         } finally {
           setIsUploadingResult(false);
         }
@@ -116,7 +115,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
             <textarea
               className="w-full min-h-[160px] bg-slate-50 border-2 border-transparent p-6 rounded-2xl text-xs font-medium focus:bg-white focus:border-slate-900 outline-none transition-all resize-none"
-              placeholder="Ex: Please change the sofa color to light grey and remove the extra floor lamp..."
+              placeholder="Ex: Please change the sofa color to light grey..."
               value={revisionNotes}
               onChange={(e) => setRevisionNotes(e.target.value)}
             />
@@ -270,7 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="w-20 h-14 mx-auto rounded-lg bg-slate-100 overflow-hidden cursor-pointer shadow-sm border border-slate-100 hover:scale-105 transition-transform" onClick={() => setViewingDetail(sub)}>
-                        <img src={sub.dataUrl} className="w-full h-full object-cover transition-all duration-500" alt="" />
+                        <img src={sub.dataUrl} className="w-full h-full object-cover" alt="" />
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -283,7 +282,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-0.5 cursor-pointer" onClick={() => setViewingDetail(sub)}>
-                        <div className="flex items-center gap-2"><span className="text-xs">{PLAN_DETAILS[sub.plan].icon}</span><span className="text-[10px] font-black text-slate-900 uppercase tracking-widest hover:underline">{PLAN_DETAILS[sub.plan].title}</span></div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest hover:underline">
+                            {PLAN_DETAILS[sub.plan].title}
+                          </span>
+                        </div>
                         <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">ID: {sub.id}</p>
                         <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 px-1.5 py-0.5 rounded inline-block">DUE: {getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}</p>
                       </div>
@@ -292,9 +295,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="flex flex-col">
                         <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
                           {new Date(sub.timestamp).toLocaleDateString()}
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
-                          {new Date(sub.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </td>
@@ -315,9 +315,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
                              {editors.find(e => e.id === sub.assignedEditorId)?.name || 'Unassigned'}
                            </span>
-                           <span className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">
-                             {editors.find(e => e.id === sub.assignedEditorId)?.specialty}
-                           </span>
                          </div>
                        )}
                     </td>
@@ -325,30 +322,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="flex items-center justify-end gap-2">
                         {sub.status === 'reviewing' && user.role === 'admin' && (
                           <>
-                            <button onClick={() => onApprove(sub.id)} className="w-8 h-8 flex items-center justify-center bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all shadow-sm" title="Approve"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg></button>
-                            <button onClick={() => setRevisingSubmission(sub)} className="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all shadow-sm" title="Request Correction"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                            <button onClick={() => onApprove(sub.id)} className="w-8 h-8 flex items-center justify-center bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" /></svg></button>
+                            <button onClick={() => setRevisingSubmission(sub)} className="w-8 h-8 flex items-center justify-center bg-amber-500 text-white rounded-lg hover:bg-amber-600 shadow-sm"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
                           </>
                         )}
                         {(sub.status === 'processing' || sub.status === 'reviewing' || sub.status === 'completed') && (
                           <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => setRevisingSubmission(sub)} 
-                              className="p-2 text-slate-300 hover:text-slate-900 transition-colors"
-                              title="Revise / Correction Request"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                              </svg>
-                            </button>
-                            
+                            <button onClick={() => setRevisingSubmission(sub)} className="p-2 text-slate-300 hover:text-slate-900"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
                             {(sub.status === 'processing' || sub.status === 'reviewing') && (
-                              <button 
-                                onClick={() => handleDeliverClick(sub.id)} 
-                                disabled={isUploadingResult}
-                                className="px-5 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md disabled:opacity-50"
-                              >
-                                {isUploadingResult ? 'Uploading...' : 'Upload Result'}
-                              </button>
+                              <button onClick={() => handleDeliverClick(sub.id)} className="px-5 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md">Upload Result</button>
                             )}
                           </div>
                         )}
