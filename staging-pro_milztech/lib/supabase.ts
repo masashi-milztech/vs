@@ -1,7 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Vite環境(import.meta.env)とNode/Cloudflare環境(process.env)の両方をチェックします
 const getEnv = (name: string) => {
   // @ts-ignore
   return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[name]) || process.env[name];
@@ -13,6 +12,49 @@ const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || 'eyJhbGciOiJIUzI1NiIsInR
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const db = {
+  storage: {
+    async upload(path: string, base64Data: string) {
+      try {
+        // MIMEタイプを抽出 (例: image/png, image/jpeg)
+        const mimeMatch = base64Data.match(/^data:(.*);base64,/);
+        const contentType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        
+        // Base64からBlobに変換
+        const base64Content = base64Data.split(',')[1];
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
+
+        const { data, error } = await supabase.storage
+          .from('submissions')
+          .upload(path, blob, {
+            contentType: contentType,
+            upsert: true
+          });
+
+        if (error) {
+          if (error.message.includes('row-level security')) {
+            throw new Error('STORAGE_POLICY_ERROR: SupabaseのStorage Policiesでアップロード権限(INSERT)を許可してください。');
+          }
+          throw error;
+        }
+
+        // 公開URLを取得
+        const { data: { publicUrl } } = supabase.storage
+          .from('submissions')
+          .getPublicUrl(path);
+
+        return publicUrl;
+      } catch (err) {
+        console.error("Storage Upload Error:", err);
+        throw err;
+      }
+    }
+  },
   submissions: {
     async fetchAll() {
       try {
