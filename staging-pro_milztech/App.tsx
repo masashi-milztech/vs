@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ClientPlatform } from './components/ClientPlatform';
 import { AdminDashboard } from './components/AdminDashboard';
+import { LandingPage } from './components/LandingPage';
 import { Submission, User, Editor } from './types';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showAuth, setShowAuth] = useState(false); // ランディングページからAuthへ遷移するためのフラグ
   const initializationId = useRef(0);
 
   const loadSubmissions = useCallback(async (currentUserId: string, role: string, editorRecordId?: string) => {
@@ -98,6 +100,7 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     setIsInitializing(true);
     setUser(null);
+    setShowAuth(false);
     setSubmissions([]);
     await supabase.auth.signOut();
     setIsInitializing(false);
@@ -136,8 +139,17 @@ const App: React.FC = () => {
     </div>
   );
 
-  if (!user) return <Login onLogin={() => {}} />;
+  // ログインしていない場合
+  if (!user) {
+    // 認証ボタンが押されたらログイン画面を表示
+    if (showAuth) {
+      return <Login onLogin={() => {}} onBack={() => setShowAuth(false)} />;
+    }
+    // デフォルトはランディングページ
+    return <LandingPage onStart={() => setShowAuth(true)} />;
+  }
 
+  // ログイン済みの場合
   return (
     <Layout user={user} onLogout={handleLogout}>
       {(user.role === 'admin' || user.role === 'editor') ? (
