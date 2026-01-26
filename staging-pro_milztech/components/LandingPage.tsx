@@ -36,19 +36,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
               </span>
             </div>
             
-            <div className="relative w-full">
-              <h1 className="text-[14vw] sm:text-7xl md:text-9xl lg:text-[11rem] xl:text-[13rem] font-black text-slate-900 tracking-tighter uppercase leading-[0.85] md:leading-[0.8] jakarta whitespace-nowrap px-4 overflow-hidden">
+            <div className="relative w-full overflow-visible">
+              <h1 className="text-[12vw] sm:text-7xl md:text-9xl lg:text-[11rem] xl:text-[13rem] font-black text-slate-900 tracking-tighter uppercase leading-[0.85] md:leading-[0.8] jakarta whitespace-nowrap px-2">
                 Staging<span className="text-slate-200">Pro</span>
               </h1>
             </div>
             
-            <div className="max-w-2xl mx-auto space-y-8 px-4">
-              <p className="text-lg md:text-2xl lg:text-3xl text-slate-500 font-medium leading-tight tracking-tight">
-                Architectural Visualization for Elite Real Estate. <br className="hidden sm:block" />
-                Experience 3-day rapid delivery.
+            <div className="max-w-4xl mx-auto space-y-8 px-4">
+              <p className="text-base md:text-2xl lg:text-3xl text-slate-500 font-medium leading-relaxed md:leading-tight tracking-tight px-2">
+                Architectural Visualization for Professionals. <br className="hidden md:block" />
+                Studio-grade staging crafted with meticulous precision.
               </p>
               
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 md:pt-8">
                 <button 
                   onClick={onStart}
                   className="w-full sm:w-auto px-12 md:px-16 py-5 md:py-7 bg-slate-900 text-white rounded-full text-[10px] md:text-[12px] font-black uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(0,0,0,0.15)] hover:bg-black hover:-translate-y-1 transition-all duration-300"
@@ -76,9 +76,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed">Every pixel is calculated. We maintain architectural integrity while maximizing visual appeal.</p>
           </div>
           <div className="space-y-4 md:space-y-6">
-            <span className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">Elite Timeline</span>
+            <span className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">Studio Standard</span>
             <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter jakarta">3 Business Days</h3>
-            <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed">Guaranteed delivery within 3 business days, excluding order date and weekends. No compromises.</p>
+            <p className="text-sm md:text-base text-slate-500 font-medium leading-relaxed">Reliable delivery within 3 business days, excluding order date and weekends. Quality guaranteed.</p>
           </div>
           <div className="space-y-4 md:space-y-6">
             <span className="text-[9px] md:text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">Direct Access</span>
@@ -175,7 +175,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
         <div className="max-w-[1400px] mx-auto relative z-10 text-center space-y-8 md:space-y-12">
            <h2 className="text-4xl md:text-7xl font-black text-white tracking-tighter uppercase jakarta italic">
-             3 Business Days <br className="sm:hidden" /> Delivery.
+             Standard 3-Day <br className="sm:hidden" /> Delivery.
            </h2>
            <p className="text-slate-400 text-[9px] md:text-xs font-black uppercase tracking-[0.5em]">
              *Excluding order date, Saturdays, and Sundays.
