@@ -19,27 +19,40 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
   const [instructions, setInstructions] = useState('');
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [viewingDetail, setViewingDetail] = useState<Submission | null>(null);
 
-  const handleSubmit = async () => {
-    if (!selectedFile || isSubmitting) return;
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const handleFileSelect = (file: File | null) => {
+    setSelectedFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setPreviewUrl(reader.result as string);
+      reader.readAsDataURL(file);
+    } else {
+      setPreviewUrl(null);
+    }
+  };
+
+  const handleInitiate = () => {
+    if (!selectedFile) return;
+    setIsConfirming(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!selectedFile || !previewUrl || isSubmitting) return;
     setIsSubmitting(true);
     
     try {
-      const reader = new FileReader();
-      const fileData: string = await new Promise((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(selectedFile);
-      });
-
       const submission: Submission = {
         id: Math.random().toString(36).substr(2, 9),
         ownerId: user.id,
         plan: selectedPlan,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
-        dataUrl: fileData,
+        dataUrl: previewUrl,
         instructions: instructions.trim(),
         referenceImages: referenceImages,
         timestamp: Date.now(),
@@ -48,7 +61,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
       await onSubmission(submission);
       
-      // メール通知の送信（Resend APIキーが設定されている場合）
       try {
         await sendStudioEmail(
           user.email,
@@ -60,7 +72,9 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       }
       
       setShowSuccess(true);
+      setIsConfirming(false);
       setSelectedFile(null);
+      setPreviewUrl(null);
       setInstructions('');
       setReferenceImages([]);
     } catch (err: any) {
@@ -77,7 +91,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-10 shadow-2xl">
            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
         </div>
-        <h2 className="text-4xl font-black text-slate-900 mb-6 tracking-tight jakarta uppercase">Order Received</h2>
+        <h2 className="text-4xl font-black text-slate-900 mb-6 tracking-tight jakarta uppercase">Order Completed</h2>
         <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed">
           The studio designers have been assigned to your project.<br/>Monitor the progress in your archive below.
         </p>
@@ -95,6 +109,71 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
     <div className="max-w-[1400px] mx-auto py-16 px-6 lg:px-12">
       {viewingDetail && (
         <DetailModal submission={viewingDetail} onClose={() => setViewingDetail(null)} />
+      )}
+
+      {/* オーダー確認モーダル */}
+      {isConfirming && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative p-8 md:p-12 space-y-8">
+            <div className="text-center space-y-2">
+              <h3 className="text-2xl font-black uppercase tracking-tight jakarta">Confirm Your Order</h3>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Please review the details below before proceeding.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+              <div className="space-y-6">
+                <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
+                  <img src={previewUrl || ''} className="w-full h-full object-cover" alt="Preview" />
+                </div>
+                <div className="bg-slate-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Order Plan</span>
+                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{PLAN_DETAILS[selectedPlan].title}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Amount</span>
+                    <span className="text-lg font-black text-slate-900 jakarta">{PLAN_DETAILS[selectedPlan].price}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Order Date</p>
+                    <p className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">{new Date().toLocaleString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Delivery</p>
+                    <p className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">{getEstimatedDeliveryDate(Date.now()).toLocaleDateString()}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Detailed Instructions</p>
+                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed italic line-clamp-4">
+                      {instructions.trim() || "No specific instructions."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 flex flex-col md:flex-row gap-4">
+              <button 
+                onClick={() => setIsConfirming(false)}
+                className="flex-1 py-5 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-slate-900 transition-all"
+              >
+                Back to Edit
+              </button>
+              <button 
+                onClick={handleConfirmSubmit}
+                disabled={isSubmitting}
+                className="flex-1 py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? 'Processing...' : 'Confirm and Order'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex flex-col xl:flex-row gap-20 items-start">
@@ -125,7 +204,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
               </div>
               <div className="space-y-12">
                 <div className="bg-slate-50 rounded-[2rem] p-4">
-                  <FileUpload onFileSelect={setSelectedFile} />
+                  <FileUpload onFileSelect={handleFileSelect} />
                 </div>
                 
                 <div className="space-y-4">
@@ -141,7 +220,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                 <ReferenceImageUpload references={referenceImages} setReferences={setReferenceImages} />
 
                 <button
-                  onClick={handleSubmit}
+                  onClick={handleInitiate}
                   disabled={!selectedFile || isSubmitting}
                   className="w-full bg-slate-900 text-white py-8 rounded-[2.5rem] text-[12px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all shadow-2xl disabled:opacity-20 flex items-center justify-center gap-4 group"
                 >
