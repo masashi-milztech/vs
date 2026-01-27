@@ -229,6 +229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Preview</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Status</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Project Detail</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Due Date</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Assignee</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
@@ -236,7 +237,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <tbody className="divide-y divide-slate-50">
               {filteredSubmissions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-32 text-center">
+                  <td colSpan={7} className="px-8 py-32 text-center">
                     <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-300 italic mb-4">
                       {isSyncing ? 'Loading from Studio...' : 'Queue is empty (Paid Only)'}
                     </p>
@@ -277,11 +278,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                        {getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                        {user.role === 'admin' ? (
                          <select 
                            value={sub.assignedEditorId || ''} 
                            onChange={(e) => onAssign(sub.id, e.target.value)}
-                           className="bg-slate-50 border-none px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer w-full max-w-[140px]"
+                           className="bg-slate-50 border-none px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer w-full max-w-[1400px]"
                          >
                            <option value="">Unassigned</option>
                            {editors.map(ed => (
