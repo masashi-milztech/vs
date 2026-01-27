@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ClientPlatform } from './components/ClientPlatform';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
-import { Submission, User, Editor } from './types';
+import { Submission, User, Editor, PLAN_DETAILS } from './types';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { supabase, db } from './lib/supabase';
@@ -123,11 +123,18 @@ const App: React.FC = () => {
       // 納品通知
       if (updates.resultDataUrl && currentSub?.ownerEmail) {
         try {
+          const planTitle = PLAN_DETAILS[currentSub.plan].title;
+          const orderDateFormatted = new Date(currentSub.timestamp).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          });
+
           await sendStudioEmail(
             currentSub.ownerEmail,
             `Results Ready: ${currentSub.id}`,
             EMAIL_TEMPLATES.DELIVERY_READY({
               orderId: currentSub.id,
+              planName: planTitle,
+              date: orderDateFormatted,
               thumbnail: updates.resultDataUrl,
               resultUrl: window.location.origin
             })
