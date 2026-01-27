@@ -26,6 +26,20 @@ export interface ReferenceImage {
   description: string;
 }
 
+export interface Message {
+  id: string;
+  submissionId?: string;
+  submission_id?: string; // DB column
+  senderId?: string;
+  sender_id?: string; // DB column
+  senderName?: string;
+  sender_name?: string; // DB column
+  senderRole?: string;
+  sender_role?: string; // DB column
+  content: string;
+  timestamp: number;
+}
+
 export interface Submission {
   id: string;
   ownerId: string;
@@ -45,13 +59,12 @@ export interface Submission {
   assignedEditorId?: string;
 }
 
-// キーにEnumを直接使用して確実に紐付け
 export const PLAN_DETAILS: Record<string, any> = {
   [PlanType.FURNITURE_REMOVE]: {
     title: 'Furniture Removal',
     description: 'Advanced removal of existing assets. We clean the digital canvas to reveal the structural potential of your space.',
     price: '$35',
-    amount: 3500, // cents for Stripe
+    amount: 3500,
     number: '01'
   },
   [PlanType.FURNITURE_ADD]: {
