@@ -217,6 +217,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
            </div>
            {user.role === 'admin' && (
              <div className="flex gap-2">
+                <a 
+                  href="https://resend.com/domains" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="px-6 py-2.5 bg-white border-2 border-slate-100 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-full hover:border-slate-900 hover:text-slate-900 transition-all flex items-center gap-2"
+                >
+                  DNS Setup
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
                 <button 
                   onClick={handleTestEmail}
                   disabled={isTestingEmail}
