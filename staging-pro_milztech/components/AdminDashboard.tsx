@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useMemo, useEffect } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import { Submission, PLAN_DETAILS, Editor, User, PlanType, getEstimatedDeliveryDate } from '../types';
 import { DetailModal } from './DetailModal';
 import { db } from '../lib/supabase';
@@ -36,37 +36,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [showEditorManager, setShowEditorManager] = useState(false);
   const [isUploadingResult, setIsUploadingResult] = useState(false);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
-  
   const [revisingSubmission, setRevisingSubmission] = useState<Submission | null>(null);
   const [revisionNotes, setRevisionNotes] = useState('');
-
   const [newEdName, setNewEdName] = useState('');
   const [newEdEmail, setNewEdEmail] = useState('');
   const [newEdSpecialty, setNewEdSpecialty] = useState('');
 
-  const handleTestEmail = async () => {
-    if (isTestingEmail) return;
-    setIsTestingEmail(true);
-    try {
-      await sendStudioEmail(
-        user.email,
-        "StagingPro Studio: Connection Test",
-        `<div style="font-family:sans-serif; padding:20px; border:1px solid #eee; border-radius:12px;">
-          <h2 style="color:#0F172A;">Connection Successful</h2>
-          <p>Your Resend API key is correctly configured for <strong>${user.email}</strong>.</p>
-          <p style="font-size:12px; color:#64748b;">Sender: info@milz.tech</p>
-        </div>`
-      );
-      alert(`Success! Test email sent to ${user.email}.\nPlease check your inbox and spam folder.`);
-    } catch (err: any) {
-      alert(`Email Test Failed:\n${err.message}\n\nAction Required:\n1. Cloudflare Pagesの "Settings > Variables" に VITE_RESEND_API_KEY を追加してください。\n2. 追加後、新しいデプロイが必要です。`);
-    } finally {
-      setIsTestingEmail(false);
-    }
-  };
-
+  // 決済済み(paid)のものだけを対象にする
   const filteredSubmissions = useMemo(() => {
-    let result = [...submissions];
+    let result = submissions.filter(s => s.paymentStatus === 'paid');
+    
     if (showOnlyMine && user.editorRecordId) {
       const myId = String(user.editorRecordId);
       result = result.filter(s => String(s.assignedEditorId) === myId);
@@ -95,7 +74,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           const base64 = reader.result as string;
           const path = `results/${subId}_final.jpg`;
           const publicUrl = await db.storage.upload(path, base64);
-          
           onDeliver(subId, publicUrl);
           activeSubmissionId.current = null;
         } catch (err) {
@@ -217,22 +195,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
            </div>
            {user.role === 'admin' && (
              <div className="flex gap-2">
-                <a 
-                  href="https://resend.com/domains" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="px-6 py-2.5 bg-white border-2 border-slate-100 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-full hover:border-slate-900 hover:text-slate-900 transition-all flex items-center gap-2"
-                >
-                  DNS Setup
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                </a>
-                <button 
-                  onClick={handleTestEmail}
-                  disabled={isTestingEmail}
-                  className="px-6 py-2.5 bg-white border-2 border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-full hover:border-slate-900 hover:text-slate-900 transition-all disabled:opacity-30"
-                >
-                  {isTestingEmail ? 'Sending...' : 'Test Email'}
-                </button>
                 <button onClick={() => setShowEditorManager(true)} className="px-6 py-2.5 bg-white border-2 border-slate-900 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-900 hover:text-white transition-all">Team</button>
              </div>
            )}
@@ -256,18 +218,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === s ? 'text-slate-900 bg-slate-50 font-black' : 'text-slate-300 hover:text-slate-400'}`}>{s}</button>
           ))}
         </div>
-        <div className="flex items-center gap-4 pr-3">
-           <select value={planFilter} onChange={e => setPlanFilter(e.target.value as any)} className="bg-slate-50 border-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer">
-              <option value="all">Plan: All</option>
-              {Object.values(PlanType).map(p => <option key={p} value={p}>{p}</option>)}
-           </select>
-           {user.role === 'admin' && (
-             <select value={editorFilter} onChange={e => setEditorFilter(e.target.value)} className="bg-slate-50 border-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest outline-none cursor-pointer">
-                <option value="all">Editor: All</option>
-                {editors.map(ed => <option key={ed.id} value={ed.id}>{ed.name}</option>)}
-             </select>
-           )}
-        </div>
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
@@ -279,7 +229,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-center">Preview</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Status</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Project Detail</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Schedule</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400">Assignee</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
@@ -287,9 +236,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <tbody className="divide-y divide-slate-50">
               {filteredSubmissions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-8 py-32 text-center">
+                  <td colSpan={6} className="px-8 py-32 text-center">
                     <p className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-300 italic mb-4">
-                      {isSyncing ? 'Loading from Studio...' : 'Queue is empty in this view'}
+                      {isSyncing ? 'Loading from Studio...' : 'Queue is empty (Paid Only)'}
                     </p>
                   </td>
                 </tr>
@@ -323,28 +272,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-0.5 cursor-pointer" onClick={() => setViewingDetail(sub)}>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest hover:underline">
-                            {PLAN_DETAILS[sub.plan].title}
-                          </span>
-                        </div>
+                        <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{PLAN_DETAILS[sub.plan].title}</span>
                         <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">ID: {sub.id}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest w-8">Ord:</span>
-                          <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                            {new Date(sub.timestamp).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[8px] font-black text-blue-300 uppercase tracking-widest w-8">Due:</span>
-                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">
-                            {getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}
-                          </span>
-                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -360,11 +289,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                            ))}
                          </select>
                        ) : (
-                         <div className="flex flex-col">
-                           <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
-                             {editors.find(e => e.id === sub.assignedEditorId)?.name || 'Unassigned'}
-                           </span>
-                         </div>
+                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">
+                           {editors.find(e => e.id === sub.assignedEditorId)?.name || 'Unassigned'}
+                         </span>
                        )}
                     </td>
                     <td className="px-8 py-4 text-right">
@@ -377,7 +304,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                         {(sub.status === 'processing' || sub.status === 'reviewing' || sub.status === 'completed') && (
                           <div className="flex items-center gap-2">
-                            <button onClick={() => setRevisingSubmission(sub)} className="p-2 text-slate-300 hover:text-slate-900"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
                             {(sub.status === 'processing' || sub.status === 'reviewing') && (
                               <button onClick={() => handleDeliverClick(sub.id)} className="px-5 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest shadow-md">Upload Result</button>
                             )}
