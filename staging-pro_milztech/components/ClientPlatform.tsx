@@ -5,7 +5,6 @@ import { PlanCard } from './PlanCard';
 import { FileUpload } from './FileUpload';
 import { DetailModal } from './DetailModal';
 import { ReferenceImageUpload } from './ReferenceImageUpload';
-import { sendStudioEmail, EMAIL_TEMPLATES } from '../lib/email';
 import { db } from '../lib/supabase';
 
 interface ClientPlatformProps {
@@ -39,16 +38,11 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
   const handlePaymentSuccess = async (orderId: string, sessionId: string) => {
     try {
-      // 1. Supabaseのステータスを更新 (未払い -> 支払い済み)
       await db.submissions.update(orderId, { 
         paymentStatus: 'paid',
         stripeSessionId: sessionId,
-        status: 'pending' // 制作待ちへ移行
+        status: 'pending'
       });
-      
-      // 2. スタジオ側にメール通知を出すなどの処理（必要に応じて）
-      
-      // 3. URLクリーンアップ (パラメータを消す)
       window.history.replaceState({}, document.title, "/");
       setShowSuccess(true);
     } catch (err) {
@@ -80,7 +74,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       const orderId = Math.random().toString(36).substr(2, 9).toUpperCase();
       const plan = PLAN_DETAILS[selectedPlan];
       
-      // 1. 画像アップロード (Supabase Storage)
+      // 1. 画像アップロード
       const storagePath = `${user.id}/${orderId}_source.jpg`;
       const publicImageUrl = await db.storage.upload(storagePath, previewUrl);
 
@@ -111,24 +105,25 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       await onSubmission(submission);
 
       // 3. Stripe Checkoutセッション作成APIを叩く
+      const requestBody = {
+        planTitle: plan.title,
+        amount: plan.amount,
+        orderId: orderId,
+        userEmail: user.email
+      };
+
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planTitle: plan.title,
-          amount: plan.amount,
-          orderId: orderId,
-          userEmail: user.email
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
       
-      if (data.url) {
-        // 4. Stripeの決済ページへ移動
+      if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || "Failed to initiate payment.");
+        throw new Error(data.message || "Failed to initiate payment session.");
       }
 
     } catch (err: any) {
