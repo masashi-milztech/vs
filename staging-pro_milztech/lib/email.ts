@@ -49,33 +49,75 @@ export async function sendStudioEmail(to: string, subject: string, html: string)
   }
 }
 
+const COMMON_STYLE = `
+  background-color: #F8FAFC; 
+  padding: 50px 20px; 
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+`;
+
+const CARD_STYLE = `
+  max-width: 600px; 
+  margin: 0 auto; 
+  background-color: #FFFFFF; 
+  border-radius: 32px; 
+  overflow: hidden; 
+  box-shadow: 0 20px 50px rgba(0,0,0,0.05); 
+  border: 1px solid #F1F5F9;
+`;
+
 export const EMAIL_TEMPLATES = {
   ORDER_CONFIRMED: (orderId: string, planName: string) => `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
-      <h1 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; color: #0F172A;">Order Confirmed</h1>
-      <p style="color: #475569;">Thank you for choosing StagingPro Studio.</p>
-      <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Order ID</p>
-        <p style="margin: 4px 0 16px 0; font-weight: 800; color: #0F172A; font-size: 18px;">${orderId}</p>
-        <p style="margin: 0; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Strategy</p>
-        <p style="margin: 4px 0 0 0; font-weight: 700; color: #0F172A;">${planName}</p>
+    <div style="${COMMON_STYLE}">
+      <div style="${CARD_STYLE}">
+        <div style="padding: 60px 50px 40px 50px; text-align: center;">
+          <h1 style="margin: 0; font-size: 10px; font-weight: 900; letter-spacing: 5px; color: #94A3B8; text-transform: uppercase; margin-bottom: 20px;">StagingPro Studio</h1>
+          <h2 style="margin: 0; font-size: 32px; font-weight: 900; color: #0F172A; letter-spacing: -1px; line-height: 1.2;">ORDER<br/>CONFIRMED</h2>
+        </div>
+        <div style="padding: 0 60px 60px 60px; text-align: center;">
+          <p style="font-size: 16px; color: #64748B; line-height: 1.8; margin-bottom: 40px;">
+            オーダーを承りました。StagingProのビジュアライザーが、あなたの空間資産の最適化を開始します。
+          </p>
+          <div style="background: #F8FAFC; padding: 30px; border-radius: 20px; margin-bottom: 40px; text-align: left; border: 1px solid #F1F5F9;">
+            <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 900; color: #94A3B8; text-transform: uppercase; letter-spacing: 2px;">Order ID</p>
+            <p style="margin: 0 0 20px 0; font-size: 18px; font-weight: 900; color: #0F172A;">${orderId}</p>
+            <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 900; color: #94A3B8; text-transform: uppercase; letter-spacing: 2px;">Strategy</p>
+            <p style="margin: 0; font-size: 16px; font-weight: 700; color: #0F172A;">${planName}</p>
+          </div>
+          <p style="font-size: 13px; color: #94A3B8; line-height: 1.6;">
+            制作が完了次第、改めて通知いたします。<br/>
+            納品までの目安は3営業日以内です。
+          </p>
+        </div>
+        <div style="background-color: #F8FAFC; padding: 30px; text-align: center; border-top: 1px solid #F1F5F9;">
+          <p style="margin: 0; font-size: 9px; font-weight: 800; color: #CBD5E1; letter-spacing: 2px; text-transform: uppercase;">&copy; StagingPro International Studio</p>
+        </div>
       </div>
-      <p style="font-size: 14px; color: #64748b; line-height: 1.6;">Our visualizers are now processing your spatial assets.</p>
-      <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 32px 0;" />
-      <p style="font-size: 10px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">&copy; StagingPro International Studio</p>
     </div>
   `,
   DELIVERY_READY: (orderId: string) => `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 40px; border: 1px solid #f0f0f0; border-radius: 24px;">
-      <h1 style="font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -1px; color: #0F172A;">Results Ready for Review</h1>
-      <p style="color: #475569;">Your architectural visualization is now complete.</p>
-      <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin: 24px 0; border: 1px solid #e2e8f0;">
-        <p style="margin: 0; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Project ID</p>
-        <p style="margin: 4px 0 0 0; font-weight: 800; color: #0F172A; font-size: 18px;">${orderId}</p>
+    <div style="${COMMON_STYLE}">
+      <div style="${CARD_STYLE}">
+        <div style="padding: 60px 50px 40px 50px; text-align: center;">
+          <h1 style="margin: 0; font-size: 10px; font-weight: 900; letter-spacing: 5px; color: #94A3B8; text-transform: uppercase; margin-bottom: 20px;">StagingPro Studio</h1>
+          <h2 style="margin: 0; font-size: 32px; font-weight: 900; color: #0F172A; letter-spacing: -1px; line-height: 1.2;">DELIVERY<br/>READY</h2>
+        </div>
+        <div style="padding: 0 60px 60px 60px; text-align: center;">
+          <p style="font-size: 16px; color: #64748B; line-height: 1.8; margin-bottom: 40px;">
+            ビジュアライゼーションが完了しました。<br/>
+            最高品質のステージング資産がアーカイブにアップロードされています。
+          </p>
+          <div style="background: #F8FAFC; padding: 30px; border-radius: 20px; margin-bottom: 40px; text-align: center; border: 1px solid #F1F5F9;">
+            <p style="margin: 0 0 5px 0; font-size: 9px; font-weight: 900; color: #94A3B8; text-transform: uppercase; letter-spacing: 2px;">Project ID</p>
+            <p style="margin: 0; font-size: 18px; font-weight: 900; color: #0F172A;">${orderId}</p>
+          </div>
+          <a href="https://milz.tech" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; padding: 22px 50px; border-radius: 20px; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 15px 30px rgba(15, 23, 42, 0.2);">
+            View Studio Archive
+          </a>
+        </div>
+        <div style="background-color: #F8FAFC; padding: 30px; text-align: center; border-top: 1px solid #F1F5F9;">
+          <p style="margin: 0; font-size: 9px; font-weight: 800; color: #CBD5E1; letter-spacing: 2px; text-transform: uppercase;">&copy; StagingPro International Studio</p>
+        </div>
       </div>
-      <p style="font-size: 14px; color: #64748b; line-height: 1.6; margin-bottom: 32px;">The final staging assets have been uploaded to your secure studio archive.</p>
-      <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 40px 0;" />
-      <p style="font-size: 10px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">&copy; StagingPro International Studio</p>
     </div>
   `
 };
