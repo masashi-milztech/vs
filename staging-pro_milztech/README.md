@@ -1,54 +1,35 @@
 
 # StagingPro - プロフェッショナル運用マニュアル
 
-## 🔐 アカウント認証メールの設定 (Supabase)
+## 💳 Stripe決済の導入手順（ハワイ・アメリカ展開用）
 
-登録時に確認メールを `info@milz.tech` から自動送信するための設定です。
+決済を有効にするには、Cloudflare Pagesの管理画面でAPIキーを設定する必要があります。
 
-1.  **SMTP (Resend) の詳細設定**:
-    *   画面右上（または `Cmd+K`）の検索窓で **「SMTP」** と入力。
-    *   **「SMTP Settings」** で以下を入力して保存：
-        *   **Enable Custom SMTP**: ON
-        *   **Sender email**: `info@milz.tech`
-        *   **Sender name**: `StagingPro Studio`
-        *   **Host**: `smtp.resend.com` / **Port**: `587`
-        *   **User**: `resend` / **Password**: (ResendのAPIキー)
+### STEP 1: Stripeキーの取得
+1. [Stripe Dashboard](https://dashboard.stripe.com) にログイン。
+2. 開発用（テスト）の場合は `Developers` > `API keys` から以下を取得：
+   - `Publishable key` (pk_test_...)
+   - `Secret key` (sk_test_...)
+3. 本番運用の場合は、Stripeの審査完了後に発行される `pk_live_...` と `sk_live_...` を使用します。
 
-2.  **認証（Confirm email）の有効化**:
-    *   左メニューの **Authentication > Sign In / Providers > Email** を開く。
-    *   **Confirm email** を **ON** にして保存。これで登録時に確認メールが飛びます。
-
----
-
-## 📧 納品通知メールの設定 (Resend API)
-
-Cloudflare Pagesの **Settings > Variables** に以下を設定してください。
-
-*   **VITE_RESEND_API_KEY**: Resendで発行したAPIキー。
-
-### ✅ DNS設定のチェックリスト (Resend管理画面)
-Resendで `milz.tech` を追加すると、以下のレコード登録を求められます。
-
-| レコードタイプ | ホスト名 (Name) | 内容 (Value) |
-| :--- | :--- | :--- |
-| **CNAME** | `resend1._domainkey` | (Resendが指定する値) |
-| **CNAME** | `resend2._domainkey` | (Resendが指定する値) |
-| **CNAME** | `resend3._domainkey` | (Resendが指定する値) |
-| **TXT** | `@` または `milz.tech` | `v=spf1 include:resend.com ~all` |
-| **TXT** | `_dmarc` | `v=DMARC1; p=none;` |
-
-> [!IMPORTANT]
-> すべてのレコードがResend側で **"Verified"**（緑色）にならないとメールは送信されません。
-
-### ✅ 接続テストの手順
-1. アプリに管理者メールアドレス（`masashi@milz.tech`等）でログイン。
-2. ヘッダーの **「Production Hub」** を開く。
-3. 右上の **「Test Email」** ボタンをクリック。
-4. 自分のメールに `Connection Test` というメールが届けば完了です！
+### STEP 2: Cloudflare Pagesでの設定
+1. Cloudflare Pagesのプロジェクト設定を開く。
+2. `Settings` > `Environment variables` (または `Functions`) を開く。
+3. 以下の変数を追加：
+   - `STRIPE_SECRET_KEY`: Stripeの **Secret key** を入力。
+   - `VITE_STRIPE_PUBLISHABLE_KEY`: Stripeの **Publishable key** を入力。
+4. **重要**: 設定後、アプリを再デプロイしてください。
 
 ---
 
-## 🛠️ 管理者アカウント
-以下のメールアドレスで登録・ログインすると、全注文の閲覧と納品が可能な「Production Hub」が開きます。
-*   `masashi@milz.tech`
-*   `masashi@thisismerci.com`
+## 🌐 独自ドメイン（お名前.com）の設定手順
+
+1. Cloudflare Pagesの `Custom domains` でドメインを入力。
+2. 表示されるネームサーバーをお名前.comの管理画面に設定。
+3. 反映後、Supabaseの `Site URL` を新しいドメインに変更。
+
+---
+
+## 📧 メール通知の設定 (Resend)
+1. `VITE_RESEND_API_KEY` をCloudflareの環境変数に設定。
+2. Resendで `info@milz.tech` のドメイン認証を完了させる。
