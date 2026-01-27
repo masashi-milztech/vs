@@ -29,6 +29,7 @@ export interface ReferenceImage {
 export interface Submission {
   id: string;
   ownerId: string;
+  ownerEmail?: string; // 追加
   plan: PlanType;
   fileName: string;
   fileSize: number;
