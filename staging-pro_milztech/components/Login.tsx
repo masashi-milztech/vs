@@ -32,10 +32,13 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
 
     try {
       if (isLoginView) {
-        const { error: signInError, data } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) {
+          if (signInError.message.includes('Email not confirmed')) {
+            throw new Error('Verification Required. \nWe have sent an activation link to your inbox. \nPlease confirm it to access the studio.');
+          }
           if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error('Authentication Failed. \nPlease check your email or join the circle.');
+            throw new Error('Authentication Failed. \nPlease check your credentials or join the studio circle.');
           }
           throw signInError;
         }
@@ -46,15 +49,16 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
           options: {
             data: {
               role: isAdmin(email) ? 'admin' : 'user'
-            }
+            },
+            emailRedirectTo: window.location.origin
           }
         });
         if (signUpError) throw signUpError;
         
         if (data.user && data.session === null) {
-          setSuccessMsg('Request received. Please check your email inbox to confirm your account.');
+          setSuccessMsg('Studio Invitation Dispatched. \nCheck your email to verify your account and activate your archive access.');
         } else {
-          setSuccessMsg('Account created! Logging you in...');
+          setSuccessMsg('Account authorized. Redirecting to your archive...');
           setTimeout(() => window.location.reload(), 1000);
         }
       }
@@ -62,7 +66,7 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
       console.error("Auth Exception:", err);
       let msg = err.message || 'Authentication error.';
       if (msg.toLowerCase().includes('rate limit')) {
-        msg = 'SECURITY LOCK: Too many attempts. Please try again later.';
+        msg = 'SECURITY LOCK: Too many attempts. Please try again in a few minutes.';
       }
       setError(msg);
       setLoading(false);
@@ -93,7 +97,7 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
 
         <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
           {error && (
-            <div className="bg-red-50 text-red-600 p-6 rounded-[2rem] border border-red-100 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="bg-red-50 text-red-600 p-8 rounded-[2rem] border border-red-100 text-center animate-in fade-in slide-in-from-top-4 duration-500">
               <p className="text-[10px] font-black uppercase tracking-widest leading-loose whitespace-pre-wrap">
                 {error}
               </p>
@@ -101,53 +105,62 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
           )}
 
           {successMsg && (
-            <div className="bg-emerald-50 text-emerald-600 p-8 rounded-[2rem] border border-emerald-100 text-center">
-              <p className="text-[10px] font-black uppercase tracking-widest leading-loose">
+            <div className="bg-slate-900 text-white p-10 rounded-[2rem] border border-slate-800 text-center shadow-2xl animate-in zoom-in duration-500">
+               <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+               </div>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] leading-loose whitespace-pre-wrap">
                 {successMsg}
               </p>
             </div>
           )}
           
-          <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-8 py-5 rounded-[2rem] border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-slate-900 transition-all outline-none font-medium text-slate-900"
-              placeholder="your@email.com"
-              required
-            />
-          </div>
+          {!successMsg && (
+            <>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-8 py-5 rounded-[2rem] border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-slate-900 transition-all outline-none font-medium text-slate-900"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
 
-          <div className="space-y-3">
-            <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Secure Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-8 py-5 rounded-[2rem] border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-slate-900 transition-all outline-none font-medium text-slate-900"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Secure Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-8 py-5 rounded-[2rem] border-2 border-slate-50 bg-slate-50 focus:bg-white focus:border-slate-900 transition-all outline-none font-medium text-slate-900"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-slate-900 text-white py-6 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all shadow-2xl disabled:opacity-50"
-          >
-            {loading ? 'SYNCING...' : (isLoginView ? 'Authenticate' : 'Join the Studio')}
-          </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-slate-900 text-white py-6 rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all shadow-2xl disabled:opacity-50"
+              >
+                {loading ? 'SYNCING...' : (isLoginView ? 'Authenticate' : 'Join the Studio')}
+              </button>
+            </>
+          )}
         </form>
 
         <div className="mt-16 pt-10 border-t border-slate-50 text-center flex flex-col gap-8">
-          <button
-            onClick={() => { setIsLoginView(!isLoginView); setError(''); setSuccessMsg(''); }}
-            className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-300 hover:text-slate-900 transition-colors"
-          >
-            {isLoginView ? "Join the studio circle →" : "Return to sign in →"}
-          </button>
+          {!successMsg && (
+            <button
+              onClick={() => { setIsLoginView(!isLoginView); setError(''); setSuccessMsg(''); }}
+              className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-300 hover:text-slate-900 transition-colors"
+            >
+              {isLoginView ? "Join the studio circle →" : "Return to sign in →"}
+            </button>
+          )}
           
           <div className="space-y-2">
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">Contact & Support</p>
