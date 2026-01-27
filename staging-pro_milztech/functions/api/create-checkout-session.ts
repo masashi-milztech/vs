@@ -27,37 +27,36 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
   try {
     const body = await request.json() as any;
     
-    // ボディ全体が空でないか確認
     if (!body) {
-      return new Response(JSON.stringify({ message: "Request body is empty" }), { status: 400 });
+      return new Response(JSON.stringify({ message: "Request body is completely empty." }), { status: 400 });
     }
 
     const { planTitle, amount, orderId, userEmail } = body;
     
-    // 必須パラメータの存在確認（!amount だと 0 がエラーになるため明示的に null/undefined をチェック）
-    const missingFields = [];
-    if (amount === undefined || amount === null) missingFields.push("amount");
-    if (!orderId) missingFields.push("orderId");
-    if (!userEmail) missingFields.push("userEmail");
+    // 詳細なデバッグ用バリデーション
+    const missing = [];
+    if (amount === undefined || amount === null) missing.push("amount");
+    if (!orderId) missing.push("orderId");
+    if (!userEmail) missing.push("userEmail");
 
-    if (missingFields.length > 0) {
+    if (missing.length > 0) {
       return new Response(JSON.stringify({ 
-        message: `Missing required parameters: ${missingFields.join(", ")}`,
-        received: body
+        message: `SERVER ERROR: Missing parameters: ${missing.join(", ")}`,
+        debug_payload: body
       }), { status: 400 });
     }
 
     // 環境変数のチェック
-    if (!env.STRIPE_SECRET_KEY) {
+    if (!env.STRIPE_SECRET_KEY || env.STRIPE_SECRET_KEY === "") {
       return new Response(JSON.stringify({ 
-        message: "Stripe configuration (Secret Key) is missing on the server." 
+        message: "SERVER ERROR: STRIPE_SECRET_KEY is not defined in Cloudflare environment." 
       }), { status: 500 });
     }
 
-    // 数値変換
-    const unitAmount = Math.round(Number(amount));
-    if (isNaN(unitAmount) || unitAmount <= 0) {
-      return new Response(JSON.stringify({ message: "Invalid amount value." }), { status: 400 });
+    // 金額の最終確認
+    const finalAmount = Math.round(Number(amount));
+    if (isNaN(finalAmount) || finalAmount < 50) { // Stripeの最小決済金額は50セント（USD）
+      return new Response(JSON.stringify({ message: `Invalid amount: ${amount}` }), { status: 400 });
     }
 
     // Stripe APIリクエスト
@@ -67,8 +66,8 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
     stripeParams.append("success_url", `${new URL(request.url).origin}/?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}&payment=success`);
     stripeParams.append("cancel_url", `${new URL(request.url).origin}/`);
     stripeParams.append("line_items[0][price_data][currency]", "usd");
-    stripeParams.append("line_items[0][price_data][product_data][name]", `StagingPro: ${planTitle || 'Service'}`);
-    stripeParams.append("line_items[0][price_data][unit_amount]", unitAmount.toString());
+    stripeParams.append("line_items[0][price_data][product_data][name]", `StagingPro: ${planTitle || 'Staging Service'}`);
+    stripeParams.append("line_items[0][price_data][unit_amount]", finalAmount.toString());
     stripeParams.append("line_items[0][quantity]", "1");
     stripeParams.append("metadata[orderId]", orderId);
     stripeParams.append("payment_method_types[0]", "card");
@@ -85,8 +84,9 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
     const session = await response.json() as any;
 
     if (!session.url) {
+      console.error("Stripe Error Details:", session);
       return new Response(JSON.stringify({ 
-        message: session.error?.message || "Stripe failed to provide a checkout URL." 
+        message: session.error?.message || "Failed to create Stripe Checkout URL." 
       }), { status: 500 });
     }
 
@@ -98,7 +98,7 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
       }
     });
   } catch (error: any) {
-    return new Response(JSON.stringify({ message: `Server Error: ${error.message}` }), { 
+    return new Response(JSON.stringify({ message: `Critical Server Error: ${error.message}` }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
