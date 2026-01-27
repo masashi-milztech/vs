@@ -68,12 +68,14 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
   const handleConfirmAndPay = async () => {
     if (!selectedFile || !previewUrl || isSubmitting) return;
     
-    // 現在の状態からプラン情報を直接取得（型の不一致を防ぐ）
-    const planKey = selectedPlan.toString();
-    const planInfo = PLAN_DETAILS[planKey];
+    // 現在選択されているプランの情報を取得
+    const planInfo = PLAN_DETAILS[selectedPlan];
+    
+    // amountを安全に数値として取得
+    const finalAmount = planInfo ? Number(planInfo.amount) : 0;
 
-    if (!planInfo || typeof planInfo.amount !== 'number') {
-      alert(`Debug Info: PlanKey=${planKey}, PlanFound=${!!planInfo}. Please refresh and try again.`);
+    if (!planInfo || isNaN(finalAmount) || finalAmount <= 0) {
+      alert(`System Error: Could not determine pricing for plan "${selectedPlan}". Please contact support.`);
       return;
     }
 
@@ -94,7 +96,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         })
       );
 
-      // 2. データベースに「unpaid」状態で仮保存
+      // 2. データベースに保存
       const submission: Submission = {
         id: orderId,
         ownerId: user.id,
@@ -112,18 +114,16 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
       await onSubmission(submission);
 
-      // 3. Stripe Checkoutセッション作成APIを叩く
-      const requestPayload = {
-        planTitle: planInfo.title,
-        amount: planInfo.amount,
-        orderId: orderId,
-        userEmail: user.email
-      };
-
+      // 3. 決済APIへ送信
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify({
+          planTitle: planInfo.title,
+          amount: finalAmount,
+          orderId: orderId,
+          userEmail: user.email
+        }),
       });
 
       const data = await response.json();
@@ -131,11 +131,11 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || "Stripe session failed.");
+        throw new Error(data.message || "Failed to initiate secure checkout.");
       }
 
     } catch (err: any) {
-      console.error("Submit Error:", err);
+      console.error("Payment Initiation Error:", err);
       alert(`PROCESS FAILED: ${err.message}`);
       setIsSubmitting(false);
     }
@@ -187,13 +187,13 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan</span>
                     <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                      {PLAN_DETAILS[selectedPlan.toString()]?.title || "N/A"}
+                      {PLAN_DETAILS[selectedPlan]?.title || "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
                     <span className="text-xl font-black text-slate-900 jakarta">
-                      {PLAN_DETAILS[selectedPlan.toString()]?.price || "N/A"} <span className="text-[10px]">USD</span>
+                      {PLAN_DETAILS[selectedPlan]?.price || "N/A"} <span className="text-[10px]">USD</span>
                     </span>
                   </div>
                 </div>
@@ -338,7 +338,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest truncate">
-                        {PLAN_DETAILS[sub.plan.toString()]?.title || "Unknown Plan"}
+                        {PLAN_DETAILS[sub.plan]?.title || "Unknown Plan"}
                       </span>
                     </div>
                     <div className="space-y-1.5">
