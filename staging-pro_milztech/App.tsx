@@ -117,20 +117,21 @@ const App: React.FC = () => {
     try {
       await db.submissions.update(id, updates);
       
-      // メール送信用のデータを特定（現在のステートまたは更新後のデータ）
       const currentSub = submissions.find(s => s.id === id);
-      
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
 
-      // 納品通知メールのトリガー
+      // 納品通知
       if (updates.resultDataUrl && currentSub?.ownerEmail) {
         try {
           await sendStudioEmail(
             currentSub.ownerEmail,
-            `Results Ready for Review: ${currentSub.id}`,
-            EMAIL_TEMPLATES.DELIVERY_READY(currentSub.id)
+            `Results Ready: ${currentSub.id}`,
+            EMAIL_TEMPLATES.DELIVERY_READY({
+              orderId: currentSub.id,
+              thumbnail: updates.resultDataUrl,
+              resultUrl: window.location.origin
+            })
           );
-          console.log(`[Email] Delivery notification sent to ${currentSub.ownerEmail}`);
         } catch (e) {
           console.error("[Email] Delivery notification failed:", e);
         }
