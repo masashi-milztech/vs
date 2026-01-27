@@ -42,10 +42,10 @@ const STYLE = {
   thumbnailContainer: `width: 100%; border-radius: 20px; overflow: hidden; margin-bottom: 35px; border: 1px solid #F1F5F9;`,
   thumbnail: `width: 100%; height: auto; display: block;`,
   infoTable: `width: 100%; background: #F8FAFC; border-radius: 20px; padding: 25px; border-collapse: separate;`,
-  label: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0; border-bottom: 1px solid #EDF2F7;`,
-  value: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0; border-bottom: 1px solid #EDF2F7;`,
-  lastLabel: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0 0 0;`,
-  lastValue: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0 0 0;`,
+  label: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0; border-bottom: 1px solid #EDF2F7; line-height: 1;`,
+  value: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0; border-bottom: 1px solid #EDF2F7; line-height: 1.4;`,
+  lastLabel: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0 0 0; line-height: 1;`,
+  lastValue: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0 0 0; line-height: 1.4;`,
   button: `display: block; width: 100%; background-color: #0F172A; color: #FFFFFF; padding: 22px 0; border-radius: 18px; text-align: center; font-size: 12px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 3px; margin-top: 35px;`,
   footerText: `text-align: center; font-size: 11px; color: #94A3B8; margin-top: 35px; font-weight: 500; line-height: 1.6;`
 };
@@ -69,26 +69,26 @@ export const EMAIL_TEMPLATES = {
           <div style="${STYLE.thumbnailContainer}">
             <img src="${data.thumbnail}" style="${STYLE.thumbnail}" alt="Project View" />
           </div>
-          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0">
+          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td style="${STYLE.label}">Project ID</td>
-              <td style="${STYLE.value}">${data.orderId}</td>
+              <td style="${STYLE.label}" width="40%">Project ID</td>
+              <td style="${STYLE.value}">${data.orderId || 'N/A'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.label}">Service</td>
-              <td style="${STYLE.value}">${data.planName}</td>
+              <td style="${STYLE.label}" width="40%">Service</td>
+              <td style="${STYLE.value}">${data.planName || 'Staging Service'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.label}">Total Amount</td>
-              <td style="${STYLE.value}">${data.price}</td>
+              <td style="${STYLE.label}" width="40%">Total Amount</td>
+              <td style="${STYLE.value}">${data.price || '-'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.label}">Ordered At</td>
-              <td style="${STYLE.value}">${data.date}</td>
+              <td style="${STYLE.label}" width="40%">Ordered At</td>
+              <td style="${STYLE.value}">${data.date || 'Today'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.lastLabel}">Est. Delivery</td>
-              <td style="${STYLE.lastValue}">${data.delivery}</td>
+              <td style="${STYLE.lastLabel}" width="40%">Est. Delivery</td>
+              <td style="${STYLE.lastValue}">${data.delivery || '3-5 Days'}</td>
             </tr>
           </table>
           <p style="${STYLE.footerText}">
@@ -116,18 +116,18 @@ export const EMAIL_TEMPLATES = {
           <div style="${STYLE.thumbnailContainer}">
             <img src="${data.thumbnail}" style="${STYLE.thumbnail}" alt="Staged Result" />
           </div>
-          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0">
+          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0" border="0">
             <tr>
-              <td style="${STYLE.label}">Project ID</td>
-              <td style="${STYLE.value}">${data.orderId}</td>
+              <td style="${STYLE.label}" width="40%">Project ID</td>
+              <td style="${STYLE.value}">${data.orderId || 'N/A'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.label}">Service</td>
-              <td style="${STYLE.value}">${data.planName}</td>
+              <td style="${STYLE.label}" width="40%">Service</td>
+              <td style="${STYLE.value}">${data.planName || 'Staging Service'}</td>
             </tr>
             <tr>
-              <td style="${STYLE.lastLabel}">Ordered At</td>
-              <td style="${STYLE.lastValue}">${data.date}</td>
+              <td style="${STYLE.lastLabel}" width="40%">Ordered At</td>
+              <td style="${STYLE.lastValue}">${data.date || '-'}</td>
             </tr>
           </table>
           <a href="${data.resultUrl || 'https://milz.tech'}" style="${STYLE.button}">View Deliverables</a>
