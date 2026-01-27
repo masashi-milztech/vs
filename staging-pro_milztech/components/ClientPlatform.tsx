@@ -4,6 +4,7 @@ import { PlanType, Submission, User, PLAN_DETAILS, ReferenceImage, getEstimatedD
 import { PlanCard } from './PlanCard';
 import { FileUpload } from './FileUpload';
 import { DetailModal } from './DetailModal';
+import { ChatBoard } from './ChatBoard';
 import { ReferenceImageUpload } from './ReferenceImageUpload';
 import { db, supabase } from '../lib/supabase';
 import { sendStudioEmail, EMAIL_TEMPLATES } from '../lib/email';
@@ -23,6 +24,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
   const [isConfirming, setIsConfirming] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [viewingDetail, setViewingDetail] = useState<Submission | null>(null);
+  const [chattingSubmission, setChattingSubmission] = useState<Submission | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,14 +40,12 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
   const handlePaymentSuccess = async (orderId: string, sessionId: string) => {
     try {
-      // 1. DBステータスを更新
       await db.submissions.update(orderId, { 
         paymentStatus: 'paid',
         stripeSessionId: sessionId,
         status: 'pending'
       });
 
-      // 2. 最新のデータを取得して確認メールを送信
       const { data: sub } = await supabase.from('submissions').select('*').eq('id', orderId).single();
       
       if (sub && sub.ownerEmail) {
@@ -93,24 +93,17 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
   const handleConfirmAndPay = async () => {
     if (!selectedFile || !previewUrl || isSubmitting) return;
-    
-    // 現在選択されているプランの情報を取得
     const planInfo = PLAN_DETAILS[selectedPlan];
-    
-    // amountを安全に数値として取得
     const finalAmount = planInfo ? Number(planInfo.amount) : 0;
 
     if (!planInfo || isNaN(finalAmount) || finalAmount <= 0) {
-      alert(`System Error: Could not determine pricing for plan "${selectedPlan}". Please contact support.`);
+      alert(`System Error: Could not determine pricing.`);
       return;
     }
 
     setIsSubmitting(true);
-    
     try {
       const orderId = Math.random().toString(36).substr(2, 9).toUpperCase();
-      
-      // 1. 画像アップロード
       const storagePath = `${user.id}/${orderId}_source.jpg`;
       const publicImageUrl = await db.storage.upload(storagePath, previewUrl);
 
@@ -122,7 +115,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         })
       );
 
-      // 2. データベースに保存
       const submission: Submission = {
         id: orderId,
         ownerId: user.id,
@@ -140,7 +132,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
       await onSubmission(submission);
 
-      // 3. 決済APIへ送信
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,15 +144,12 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       });
 
       const data = await response.json();
-      
       if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || "Failed to initiate secure checkout.");
+        throw new Error(data.message || "Checkout failed.");
       }
-
     } catch (err: any) {
-      console.error("Payment Initiation Error:", err);
       alert(`PROCESS FAILED: ${err.message}`);
       setIsSubmitting(false);
     }
@@ -175,100 +163,38 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         </div>
         <h2 className="text-4xl font-black text-slate-900 mb-6 tracking-tight jakarta uppercase">Order Confirmed</h2>
         <p className="text-slate-500 mb-12 text-lg font-medium leading-relaxed">
-          Payment received. Our visualizers are now processing your request.<br/>You will be notified via email upon completion.
+          Payment received. Our visualizers are now processing your request.
         </p>
-        <button 
-          onClick={() => {
-            setShowSuccess(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className="bg-slate-900 text-white px-12 py-5 rounded-3xl text-xs font-extrabold uppercase tracking-widest shadow-2xl hover:bg-black transition-all"
-        >
-          Return to Studio
-        </button>
+        <button onClick={() => setShowSuccess(false)} className="bg-slate-900 text-white px-12 py-5 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-2xl">Return to Studio</button>
       </div>
     );
   }
 
   return (
     <div className="max-w-[1400px] mx-auto py-16 px-6 lg:px-12">
-      {viewingDetail && (
-        <DetailModal submission={viewingDetail} onClose={() => setViewingDetail(null)} />
-      )}
+      {viewingDetail && <DetailModal submission={viewingDetail} onClose={() => setViewingDetail(null)} />}
+      {chattingSubmission && <ChatBoard submission={chattingSubmission} user={user} onClose={() => setChattingSubmission(null)} />}
 
       {isConfirming && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden relative p-8 md:p-12 space-y-8">
             <div className="text-center space-y-2">
               <h3 className="text-2xl font-black uppercase tracking-tight jakarta">Review & Payment</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Secured by Stripe International</p>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-              <div className="space-y-6">
-                <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden border border-slate-100 shadow-inner">
-                  <img src={previewUrl || ''} className="w-full h-full object-cover" alt="Preview" />
-                </div>
-                <div className="bg-slate-50 p-6 rounded-2xl space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan</span>
-                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                      {PLAN_DETAILS[selectedPlan]?.title || "N/A"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                    <span className="text-xl font-black text-slate-900 jakarta">
-                      {PLAN_DETAILS[selectedPlan]?.price || "N/A"} <span className="text-[10px]">USD</span>
-                    </span>
-                  </div>
-                </div>
+              <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden shadow-inner">
+                <img src={previewUrl || ''} className="w-full h-full object-cover" alt="" />
               </div>
-
               <div className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Accepted Methods</p>
-                    <div className="flex gap-2">
-                       <div className="h-4 w-auto bg-slate-100 px-1 rounded flex items-center justify-center"><span className="text-[8px] font-black text-slate-400">VISA</span></div>
-                       <div className="h-4 w-auto bg-slate-100 px-1 rounded flex items-center justify-center"><span className="text-[8px] font-black text-slate-400">MC</span></div>
-                       <div className="h-4 w-auto bg-slate-100 px-1 rounded flex items-center justify-center"><span className="text-[8px] font-black text-slate-400">AMEX</span></div>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Delivery</p>
-                    <p className="text-[11px] font-bold text-slate-900 uppercase tracking-widest">{getEstimatedDeliveryDate(Date.now()).toLocaleDateString('en-US')}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Instructions</p>
-                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed italic line-clamp-4">
-                      {instructions.trim() || "No specific instructions."}
-                    </p>
-                  </div>
+                <div className="bg-slate-50 p-6 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-center border-b pb-2"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan</span><span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{PLAN_DETAILS[selectedPlan]?.title}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span><span className="text-xl font-black text-slate-900 jakarta">{PLAN_DETAILS[selectedPlan]?.price} <span className="text-[10px]">USD</span></span></div>
                 </div>
               </div>
             </div>
-
-            <div className="pt-6 border-t border-slate-100 flex flex-col md:flex-row gap-4">
-              <button 
-                onClick={() => setIsConfirming(false)}
-                disabled={isSubmitting}
-                className="flex-1 py-5 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:text-slate-900 transition-all disabled:opacity-0"
-              >
-                Back to Edit
-              </button>
-              <button 
-                onClick={handleConfirmAndPay}
-                disabled={isSubmitting}
-                className="flex-1 py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] shadow-xl hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-              >
-                {isSubmitting ? 'Connecting...' : (
-                  <>
-                    <span>Confirm & Pay</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 15V3m0 12l-4-4m4 4l4-4" /></svg>
-                  </>
-                )}
-              </button>
+            <div className="pt-6 border-t flex gap-4">
+              <button onClick={() => setIsConfirming(false)} className="flex-1 py-5 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300">Back</button>
+              <button onClick={handleConfirmAndPay} className="flex-1 py-5 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl">Confirm & Pay</button>
             </div>
           </div>
         </div>
@@ -277,17 +203,12 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       <div className="flex flex-col xl:flex-row gap-20 items-start">
         <div className="flex-1 space-y-12">
           <header className="space-y-6">
-            <h1 className="text-7xl font-black text-slate-900 tracking-tighter uppercase leading-[0.85] jakarta">
-              Order <br/> Staging.
-            </h1>
+            <h1 className="text-7xl font-black text-slate-900 tracking-tighter uppercase leading-[0.85] jakarta">Order <br/> Staging.</h1>
           </header>
 
           <div className="space-y-8">
             <div className="card-premium rounded-[3rem] p-10 md:p-14">
-              <div className="flex items-center gap-6 mb-12">
-                <span className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-2xl font-black text-lg">01</span>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight jakarta uppercase">Select Service</h2>
-              </div>
+              <div className="flex items-center gap-6 mb-12"><span className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-2xl font-black text-lg">01</span><h2 className="text-2xl font-black text-slate-900 uppercase">Select Service</h2></div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <PlanCard type={PlanType.FURNITURE_REMOVE} isSelected={selectedPlan === PlanType.FURNITURE_REMOVE} onSelect={setSelectedPlan} />
                 <PlanCard type={PlanType.FURNITURE_ADD} isSelected={selectedPlan === PlanType.FURNITURE_ADD} onSelect={setSelectedPlan} />
@@ -296,38 +217,13 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
             </div>
 
             <div className="card-premium rounded-[3rem] p-10 md:p-14">
-              <div className="flex items-center gap-6 mb-12">
-                <span className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-2xl font-black text-lg">02</span>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight jakarta uppercase">Upload Assets</h2>
-              </div>
+              <div className="flex items-center gap-6 mb-12"><span className="w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-2xl font-black text-lg">02</span><h2 className="text-2xl font-black text-slate-900 uppercase">Upload Assets</h2></div>
               <div className="space-y-12">
-                <div className="bg-slate-50 rounded-[2rem] p-4">
-                  <FileUpload onFileSelect={handleFileSelect} />
-                </div>
-                
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Studio Instructions</label>
-                  <textarea
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    placeholder="Specific requests..."
-                    className="w-full bg-slate-50 border-2 border-transparent p-8 rounded-[2rem] min-h-[160px] text-sm font-medium focus:bg-white focus:border-slate-900 outline-none transition-all resize-none"
-                  />
-                </div>
-
+                <FileUpload onFileSelect={handleFileSelect} />
+                <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Specific requests..." className="w-full bg-slate-50 p-8 rounded-[2rem] min-h-[160px] text-sm font-medium outline-none transition-all resize-none" />
                 <ReferenceImageUpload references={referenceImages} setReferences={setReferenceImages} />
-
-                <button
-                  onClick={handleInitiate}
-                  disabled={!selectedFile || isSubmitting}
-                  className="w-full bg-slate-900 text-white py-8 rounded-[2.5rem] text-[12px] font-black uppercase tracking-[0.4em] hover:bg-black transition-all shadow-2xl disabled:opacity-20 flex items-center justify-center gap-4 group"
-                >
-                  {isSubmitting ? 'SYNCING...' : (
-                    <>
-                      <span>Submit & Proceed to Checkout</span>
-                      <svg className="w-5 h-5 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                    </>
-                  )}
+                <button onClick={handleInitiate} disabled={!selectedFile || isSubmitting} className="w-full bg-slate-900 text-white py-8 rounded-[2.5rem] text-[12px] font-black uppercase tracking-[0.4em] shadow-2xl disabled:opacity-20 flex items-center justify-center gap-4 group">
+                  {isSubmitting ? 'SYNCING...' : <span>Submit & Proceed to Checkout</span>}
                 </button>
               </div>
             </div>
@@ -337,55 +233,39 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         <div className="w-full xl:w-[450px] space-y-8">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-slate-900">Project History</h2>
-            <div className="w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px] font-black">
-              {userSubmissions.filter(s => s.paymentStatus === 'paid').length}
-            </div>
+            <div className="w-7 h-7 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px] font-black">{userSubmissions.filter(s => s.paymentStatus === 'paid').length}</div>
           </div>
 
           <div className="space-y-4">
-            {userSubmissions.filter(s => s.paymentStatus === 'paid').length === 0 ? (
-              <div className="card-premium rounded-[2.5rem] p-12 text-center border-dashed border-2 bg-slate-50/50">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-300 leading-relaxed">Your active studio projects will appear here.</p>
-              </div>
-            ) : (
-              userSubmissions.filter(s => s.paymentStatus === 'paid').map((sub) => (
-                <div 
-                  key={sub.id} 
-                  onClick={() => setViewingDetail(sub)}
-                  className="group flex items-center gap-5 p-4 bg-white rounded-[2rem] border border-slate-100 hover:border-slate-900 hover:shadow-xl transition-all cursor-pointer"
-                >
-                  <div className="w-20 h-20 rounded-[1.2rem] overflow-hidden flex-shrink-0 bg-slate-100 relative">
-                    <img src={sub.dataUrl} className="w-full h-full object-cover transition-all duration-700" alt="" />
-                    {sub.status === 'completed' && (
-                       <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>
-                    )}
+            {userSubmissions.filter(s => s.paymentStatus === 'paid').map((sub) => (
+              <div key={sub.id} className="group flex flex-col p-5 bg-white rounded-[2.5rem] border border-slate-100 hover:border-slate-900 hover:shadow-xl transition-all">
+                <div className="flex gap-4 mb-4">
+                  <div onClick={() => setViewingDetail(sub)} className="w-20 h-20 rounded-[1.2rem] overflow-hidden flex-shrink-0 bg-slate-100 relative cursor-pointer">
+                    <img src={sub.dataUrl} className="w-full h-full object-cover" alt="" />
+                    {sub.status === 'completed' && <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"></div>}
                   </div>
-
                   <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest truncate">
-                        {PLAN_DETAILS[sub.plan]?.title || "Unknown Plan"}
-                      </span>
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex flex-col gap-1.5">
+                    <span onClick={() => setViewingDetail(sub)} className="text-[10px] font-black text-slate-900 uppercase tracking-widest truncate block mb-1 cursor-pointer">{PLAN_DETAILS[sub.plan]?.title}</span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2"><span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${sub.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>{sub.status}</span></div>
+                      <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
-                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border ${
-                            sub.status === 'completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100 animate-pulse'
-                          }`}>{sub.status}</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5 px-0.5">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Date:</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(sub.timestamp).toLocaleDateString()}</span>
-                          </div>
+                           <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Est. Delivery:</span>
+                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))
-            )}
+                <button 
+                  onClick={() => setChattingSubmission(sub)}
+                  className="w-full py-3.5 bg-slate-50 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-900 hover:text-white transition-all flex items-center justify-center gap-2"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                  Contact Studio
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </div>
