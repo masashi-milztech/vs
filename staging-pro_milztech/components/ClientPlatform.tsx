@@ -24,7 +24,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
   const [viewingDetail, setViewingDetail] = useState<Submission | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // URLパラメータから決済成功を検知
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get('session_id');
@@ -68,11 +67,18 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
   const handleConfirmAndPay = async () => {
     if (!selectedFile || !previewUrl || isSubmitting) return;
+    
+    // 現在選択されているプランの最新情報を取得
+    const planInfo = PLAN_DETAILS[selectedPlan];
+    if (!planInfo || !planInfo.amount) {
+      alert("Invalid Plan Selection. Please try again.");
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
       const orderId = Math.random().toString(36).substr(2, 9).toUpperCase();
-      const plan = PLAN_DETAILS[selectedPlan];
       
       // 1. 画像アップロード
       const storagePath = `${user.id}/${orderId}_source.jpg`;
@@ -105,9 +111,9 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       await onSubmission(submission);
 
       // 3. Stripe Checkoutセッション作成APIを叩く
-      const requestBody = {
-        planTitle: plan.title,
-        amount: plan.amount,
+      const requestPayload = {
+        planTitle: planInfo.title,
+        amount: Number(planInfo.amount), // 数値であることを保証
         orderId: orderId,
         userEmail: user.email
       };
@@ -115,7 +121,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestPayload),
       });
 
       const data = await response.json();
@@ -123,7 +129,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || "Failed to initiate payment session.");
+        throw new Error(data.message || "Stripe initiation failed.");
       }
 
     } catch (err: any) {
