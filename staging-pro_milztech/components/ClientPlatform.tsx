@@ -47,7 +47,15 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
     setIsSubmitting(true);
     
     try {
-      const orderId = Math.random().toString(36).substr(2, 9);
+      const orderId = Math.random().toString(36).substr(2, 9).toUpperCase();
+      const now = Date.now();
+      const plan = PLAN_DETAILS[selectedPlan];
+      const deliveryDate = getEstimatedDeliveryDate(now).toLocaleDateString('en-US', { 
+        year: 'numeric', month: 'long', day: 'numeric' 
+      });
+      const orderDate = new Date(now).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
       
       const storagePath = `${user.id}/${orderId}_source.jpg`;
       const publicImageUrl = await db.storage.upload(storagePath, previewUrl);
@@ -63,14 +71,14 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       const submission: Submission = {
         id: orderId,
         ownerId: user.id,
-        ownerEmail: user.email, // ユーザーのメールアドレスを保存
+        ownerEmail: user.email,
         plan: selectedPlan,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
         dataUrl: publicImageUrl,
         instructions: instructions.trim(),
         referenceImages: uploadedReferences,
-        timestamp: Date.now(),
+        timestamp: now,
         status: 'pending'
       };
 
@@ -80,7 +88,14 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
         await sendStudioEmail(
           user.email,
           `Order Confirmed: ${submission.id}`,
-          EMAIL_TEMPLATES.ORDER_CONFIRMED(submission.id, PLAN_DETAILS[selectedPlan].title)
+          EMAIL_TEMPLATES.ORDER_CONFIRMED({
+            orderId: submission.id,
+            planName: plan.title,
+            price: plan.price,
+            date: orderDate,
+            delivery: deliveryDate,
+            thumbnail: publicImageUrl
+          })
         );
       } catch (e) {
         console.warn("Email notification failed, but order was saved.");
