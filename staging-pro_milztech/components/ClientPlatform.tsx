@@ -5,7 +5,8 @@ import { PlanCard } from './PlanCard';
 import { FileUpload } from './FileUpload';
 import { DetailModal } from './DetailModal';
 import { ReferenceImageUpload } from './ReferenceImageUpload';
-import { db } from '../lib/supabase';
+import { db, supabase } from '../lib/supabase';
+import { sendStudioEmail, EMAIL_TEMPLATES } from '../lib/email';
 
 interface ClientPlatformProps {
   user: User;
@@ -37,11 +38,36 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
 
   const handlePaymentSuccess = async (orderId: string, sessionId: string) => {
     try {
+      // 1. DBステータスを更新
       await db.submissions.update(orderId, { 
         paymentStatus: 'paid',
         stripeSessionId: sessionId,
         status: 'pending'
       });
+
+      // 2. 最新のデータを取得して確認メールを送信
+      const { data: sub } = await supabase.from('submissions').select('*').eq('id', orderId).single();
+      
+      if (sub && sub.ownerEmail) {
+        try {
+          const planInfo = PLAN_DETAILS[sub.plan];
+          await sendStudioEmail(
+            sub.ownerEmail,
+            `Order Confirmed: ${sub.id}`,
+            EMAIL_TEMPLATES.ORDER_CONFIRMED({
+              orderId: sub.id,
+              planName: planInfo?.title || 'Staging Service',
+              price: planInfo?.price || '-',
+              date: new Date(sub.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              delivery: getEstimatedDeliveryDate(sub.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+              thumbnail: sub.dataUrl
+            })
+          );
+        } catch (emailErr) {
+          console.error("Order confirmation email failed:", emailErr);
+        }
+      }
+
       window.history.replaceState({}, document.title, "/");
       setShowSuccess(true);
     } catch (err) {
