@@ -63,6 +63,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       const submission: Submission = {
         id: orderId,
         ownerId: user.id,
+        ownerEmail: user.email, // ユーザーのメールアドレスを保存
         plan: selectedPlan,
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
@@ -235,7 +236,6 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                   />
                 </div>
 
-                {/* Fix: use setReferenceImages instead of setReferences to match the state setter defined above */}
                 <ReferenceImageUpload references={referenceImages} setReferences={setReferenceImages} />
 
                 <button
