@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 
 const getEnv = (name: string): string | undefined => {
@@ -45,12 +46,7 @@ export const db = {
             upsert: true
           });
 
-        if (error) {
-          if (error.message.includes('row-level security')) {
-            throw new Error('STORAGE_POLICY_ERROR: SupabaseのStorage Policiesでアップロード権限(INSERT)を許可してください。');
-          }
-          throw error;
-        }
+        if (error) throw error;
 
         const { data: { publicUrl } } = supabase.storage
           .from('submissions')
@@ -65,45 +61,19 @@ export const db = {
   },
   submissions: {
     async fetchAll() {
-      try {
-        const { data, error } = await supabase
-          .from('submissions')
-          .select('*')
-          .order('timestamp', { ascending: false });
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error("Submissions FetchAll Error:", err);
-        return [];
-      }
+      const { data, error } = await supabase.from('submissions').select('*').order('timestamp', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
     async fetchByUser(userId: string) {
-      try {
-        const { data, error } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('ownerId', userId)
-          .order('timestamp', { ascending: false });
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error("Submissions FetchByUser Error:", err);
-        return [];
-      }
+      const { data, error } = await supabase.from('submissions').select('*').eq('ownerId', userId).order('timestamp', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
     async fetchByEditor(editorId: string) {
-      try {
-        const { data, error } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('assignedEditorId', editorId)
-          .order('timestamp', { ascending: false });
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error("Submissions FetchByEditor Error:", err);
-        return [];
-      }
+      const { data, error } = await supabase.from('submissions').select('*').eq('assignedEditorId', editorId).order('timestamp', { ascending: false });
+      if (error) throw error;
+      return data || [];
     },
     async insert(submission: any) {
       const { error } = await supabase.from('submissions').insert([submission]);
@@ -120,14 +90,9 @@ export const db = {
   },
   editors: {
     async fetchAll() {
-      try {
-        const { data, error } = await supabase.from('editors').select('*').order('name');
-        if (error) throw error;
-        return data || [];
-      } catch (err) {
-        console.error("Editors FetchAll Error:", err);
-        return [];
-      }
+      const { data, error } = await supabase.from('editors').select('*').order('name');
+      if (error) throw error;
+      return data || [];
     },
     async insert(editor: any) {
       const { error } = await supabase.from('editors').insert([editor]);
@@ -135,6 +100,33 @@ export const db = {
     },
     async delete(id: string) {
       const { error } = await supabase.from('editors').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  messages: {
+    async fetchBySubmission(submissionId: string) {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('submission_id', submissionId)
+        .order('timestamp', { ascending: true });
+      
+      if (error) {
+        // テーブルが存在しないエラー(PGRST205)の場合は空配列を返し、上位でハンドリング
+        if (error.code === 'PGRST205') return { error: 'TABLE_MISSING' };
+        console.error("Fetch Messages Error:", error);
+        return [];
+      }
+      return data || [];
+    },
+    async fetchAll() {
+      const { data, error } = await supabase.from('messages').select('*').order('timestamp', { ascending: false });
+      if (error && error.code === 'PGRST205') return [];
+      if (error) throw error;
+      return data || [];
+    },
+    async insert(message: any) {
+      const { error } = await supabase.from('messages').insert([message]);
       if (error) throw error;
     }
   }
