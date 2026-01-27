@@ -29,7 +29,7 @@ export interface ReferenceImage {
 export interface Submission {
   id: string;
   ownerId: string;
-  ownerEmail?: string; // 追加
+  ownerEmail?: string;
   plan: PlanType;
   fileName: string;
   fileSize: number;
@@ -40,26 +40,32 @@ export interface Submission {
   referenceImages?: ReferenceImage[]; 
   timestamp: number;
   status: 'pending' | 'processing' | 'reviewing' | 'completed';
+  paymentStatus: 'unpaid' | 'paid';
+  stripeSessionId?: string;
   assignedEditorId?: string;
 }
 
-export const PLAN_DETAILS = {
+// キーにEnumを直接使用して確実に紐付け
+export const PLAN_DETAILS: Record<string, any> = {
   [PlanType.FURNITURE_REMOVE]: {
     title: 'Furniture Removal',
     description: 'Advanced removal of existing assets. We clean the digital canvas to reveal the structural potential of your space.',
     price: '$35',
+    amount: 3500, // cents for Stripe
     number: '01'
   },
   [PlanType.FURNITURE_ADD]: {
     title: 'Furniture Addition',
     description: 'Precision staging for vacant rooms. Curated sets selected by architectural visualizers to maximize market value.',
     price: '$35',
+    amount: 3500,
     number: '02'
   },
   [PlanType.FURNITURE_BOTH]: {
     title: 'Full Staging (Both)',
     description: 'Complete spatial overhaul. Existing items are removed and replaced with elite, high-resolution digital staging.',
     price: '$60',
+    amount: 6000,
     number: '03'
   }
 };
