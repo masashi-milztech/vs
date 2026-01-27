@@ -101,6 +101,8 @@ export const EMAIL_TEMPLATES = {
   `,
   DELIVERY_READY: (data: { 
     orderId: string, 
+    planName: string,
+    date: string,
     thumbnail: string,
     resultUrl: string
   }) => `
@@ -116,8 +118,16 @@ export const EMAIL_TEMPLATES = {
           </div>
           <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0">
             <tr>
-              <td style="${STYLE.lastLabel}">Project ID</td>
-              <td style="${STYLE.lastValue}">${data.orderId}</td>
+              <td style="${STYLE.label}">Project ID</td>
+              <td style="${STYLE.value}">${data.orderId}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.label}">Service</td>
+              <td style="${STYLE.value}">${data.planName}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.lastLabel}">Ordered At</td>
+              <td style="${STYLE.lastValue}">${data.date}</td>
             </tr>
           </table>
           <a href="${data.resultUrl || 'https://milz.tech'}" style="${STYLE.button}">View Deliverables</a>
