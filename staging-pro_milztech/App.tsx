@@ -115,32 +115,42 @@ const App: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, updates: Partial<Submission>) => {
     try {
+      // 1. DB更新を実行
       await db.submissions.update(id, updates);
       
-      const currentSub = submissions.find(s => s.id === id);
+      // 2. ローカルステートを更新
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
 
-      // 納品通知
-      if (updates.resultDataUrl && currentSub?.ownerEmail) {
-        try {
-          const planTitle = PLAN_DETAILS[currentSub.plan].title;
-          const orderDateFormatted = new Date(currentSub.timestamp).toLocaleString('en-US', {
-            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-          });
+      // 3. 納品通知の判定
+      if (updates.resultDataUrl) {
+        // 重要: ステートに頼らず、DBから最新の完全なデータを直接取得する
+        const { data: freshSub, error } = await supabase
+          .from('submissions')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-          await sendStudioEmail(
-            currentSub.ownerEmail,
-            `Results Ready: ${currentSub.id}`,
-            EMAIL_TEMPLATES.DELIVERY_READY({
-              orderId: currentSub.id,
-              planName: planTitle,
-              date: orderDateFormatted,
-              thumbnail: updates.resultDataUrl,
-              resultUrl: window.location.origin
-            })
-          );
-        } catch (e) {
-          console.error("[Email] Delivery notification failed:", e);
+        if (!error && freshSub && freshSub.ownerEmail) {
+          try {
+            const planTitle = PLAN_DETAILS[freshSub.plan as keyof typeof PLAN_DETAILS]?.title || 'Staging Service';
+            const orderDateFormatted = new Date(freshSub.timestamp).toLocaleString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            await sendStudioEmail(
+              freshSub.ownerEmail,
+              `Results Ready: ${freshSub.id}`,
+              EMAIL_TEMPLATES.DELIVERY_READY({
+                orderId: freshSub.id,
+                planName: planTitle,
+                date: orderDateFormatted,
+                thumbnail: updates.resultDataUrl, // アップロードされた最新の画像
+                resultUrl: window.location.origin
+              })
+            );
+          } catch (emailErr) {
+            console.error("[Email] Delivery notification failed:", emailErr);
+          }
         }
       }
     } catch (err: any) {
