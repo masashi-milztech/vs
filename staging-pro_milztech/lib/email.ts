@@ -1,32 +1,29 @@
 
 /**
- * Multi-Provider Email Utility for StagingPro
+ * Multi-Provider Email Utility for StagingPro (Server-Relay version)
  */
 
+export const EMAIL_FROM = 'StagingPro Studio <info@milz.tech>';
+
+// Helper to access environment variables consistently
 const getEnv = (name: string) => {
   // @ts-ignore
   return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[name]) || process.env[name];
 };
 
+// Exporting RESEND_API_KEY (Still used for UI check)
 export const RESEND_API_KEY = getEnv('VITE_RESEND_API_KEY');
-// ドメイン認証が済むまでは 'onboarding@resend.dev' を使うことも可能
-export const EMAIL_FROM = getEnv('VITE_EMAIL_FROM') || 'StagingPro Studio <info@milz.tech>';
 
 export async function sendStudioEmail(to: string, subject: string, html: string) {
-  if (!RESEND_API_KEY) {
-    const errorMsg = "VITE_RESEND_API_KEY が設定されていません。Cloudflareの環境変数を確認してください。";
-    console.error(`[Email Error] ${errorMsg}`);
-    throw new Error(errorMsg);
-  }
-
   try {
-    console.log(`[Email] Attempting to send to: ${to} via Resend...`);
+    console.log(`[Email] Dispatching to server relay for: ${to}`);
     
-    const response = await fetch('https://api.resend.com/emails', {
+    // Cloudflare Pages Functions のエンドポイントを呼び出す
+    // パスは自動的に /api/send-email にマッピングされる
+    const response = await fetch('/api/send-email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: EMAIL_FROM,
@@ -39,17 +36,13 @@ export async function sendStudioEmail(to: string, subject: string, html: string)
     const result = await response.json();
 
     if (!response.ok) {
-      console.error("[Email Error] Resend API responded with error:", result);
-      // ドメイン未認証時の一般的なエラー
-      if (result.message?.includes('unverified')) {
-        throw new Error("Resendでドメイン(milz.tech)の認証が完了していません。Resend Dashboard > Domainsを確認してください。");
-      }
-      throw new Error(result.message || 'Resend request failed');
+      console.error("[Email Error] Server responded with error:", result);
+      throw new Error(result.message || 'Email sending failed via server relay');
     }
 
-    console.log("[Email Success] ID:", result.id);
+    console.log("[Email Success] Email sent via relay. ID:", result.id);
     return result;
-  } catch (err) {
+  } catch (err: any) {
     console.error("[Email Critical Error]", err);
     throw err;
   }
@@ -67,7 +60,7 @@ export const EMAIL_TEMPLATES = {
           <h2 style="margin: 0; font-size: 32px; font-weight: 900; color: #0F172A; letter-spacing: -1px; line-height: 1.2;">ORDER<br/>CONFIRMED</h2>
         </div>
         <div style="padding: 0 60px 60px 60px; text-align: center;">
-          <p style="font-size: 16px; color: #64748B; line-height: 1.8; margin-bottom: 40px;">オーダーを承りました。3営業日以内に納品いたします。</p>
+          <p style="font-size: 16px; color: #64748B; line-height: 1.8; margin-bottom: 40px;">オーダーを承りました。StagingProのビジュアライザーが作業を開始します。</p>
           <div style="background: #F8FAFC; padding: 30px; border-radius: 20px; text-align: left; border: 1px solid #F1F5F9;">
             <p style="margin: 0; font-size: 9px; font-weight: 900; color: #94A3B8; text-transform: uppercase;">Order ID: ${orderId}</p>
             <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: 700; color: #0F172A;">${planName}</p>
@@ -85,7 +78,7 @@ export const EMAIL_TEMPLATES = {
         </div>
         <div style="padding: 0 60px 60px 60px; text-align: center;">
           <p style="font-size: 16px; color: #64748B; line-height: 1.8; margin-bottom: 40px;">ビジュアライゼーションが完了しました。アーカイブをご確認ください。</p>
-          <a href="https://milz.tech" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; padding: 22px 50px; border-radius: 20px; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase;">View Archive</a>
+          <a href="https://milz.tech" style="display: inline-block; background-color: #0F172A; color: #FFFFFF; padding: 22px 50px; border-radius: 20px; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase;">View Studio Archive</a>
         </div>
       </div>
     </div>
