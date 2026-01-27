@@ -68,10 +68,12 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
   const handleConfirmAndPay = async () => {
     if (!selectedFile || !previewUrl || isSubmitting) return;
     
-    // 現在選択されているプランの最新情報を取得
-    const planInfo = PLAN_DETAILS[selectedPlan];
-    if (!planInfo || !planInfo.amount) {
-      alert("Invalid Plan Selection. Please try again.");
+    // 現在の状態からプラン情報を直接取得（型の不一致を防ぐ）
+    const planKey = selectedPlan.toString();
+    const planInfo = PLAN_DETAILS[planKey];
+
+    if (!planInfo || typeof planInfo.amount !== 'number') {
+      alert(`Debug Info: PlanKey=${planKey}, PlanFound=${!!planInfo}. Please refresh and try again.`);
       return;
     }
 
@@ -113,7 +115,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       // 3. Stripe Checkoutセッション作成APIを叩く
       const requestPayload = {
         planTitle: planInfo.title,
-        amount: Number(planInfo.amount), // 数値であることを保証
+        amount: planInfo.amount,
         orderId: orderId,
         userEmail: user.email
       };
@@ -129,7 +131,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
       if (response.ok && data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.message || "Stripe initiation failed.");
+        throw new Error(data.message || "Stripe session failed.");
       }
 
     } catch (err: any) {
@@ -184,11 +186,15 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                 <div className="bg-slate-50 p-6 rounded-2xl space-y-4">
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Plan</span>
-                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{PLAN_DETAILS[selectedPlan].title}</span>
+                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                      {PLAN_DETAILS[selectedPlan.toString()]?.title || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-                    <span className="text-xl font-black text-slate-900 jakarta">{PLAN_DETAILS[selectedPlan].price} <span className="text-[10px]">USD</span></span>
+                    <span className="text-xl font-black text-slate-900 jakarta">
+                      {PLAN_DETAILS[selectedPlan.toString()]?.price || "N/A"} <span className="text-[10px]">USD</span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -332,7 +338,7 @@ export const ClientPlatform: React.FC<ClientPlatformProps> = ({ user, onSubmissi
                   <div className="flex-grow min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest truncate">
-                        {PLAN_DETAILS[sub.plan].title}
+                        {PLAN_DETAILS[sub.plan.toString()]?.title || "Unknown Plan"}
                       </span>
                     </div>
                     <div className="space-y-1.5">
