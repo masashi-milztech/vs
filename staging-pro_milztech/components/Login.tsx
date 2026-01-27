@@ -35,14 +35,17 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) {
           if (signInError.message.includes('Email not confirmed')) {
-            throw new Error('Verification Required. \nWe have sent an activation link to your inbox. \nPlease confirm it to access the studio.');
+            throw new Error('Verification Required. \n確認メールのリンクをクリックして有効化してください。');
           }
           if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error('Authentication Failed. \nPlease check your credentials or join the studio circle.');
+            throw new Error('Authentication Failed. \nパスワードが正しくないか、アカウントが存在しません。');
           }
           throw signInError;
         }
       } else {
+        // 現在のドメインを取得（milz.techなど）
+        const redirectUrl = window.location.origin;
+        
         const { error: signUpError, data } = await supabase.auth.signUp({ 
           email, 
           password,
@@ -50,13 +53,16 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
             data: {
               role: isAdmin(email) ? 'admin' : 'user'
             },
-            emailRedirectTo: window.location.origin
+            emailRedirectTo: redirectUrl // ここで明示的に現在のURLを指定
           }
         });
-        if (signUpError) throw signUpError;
+        
+        if (signUpError) {
+          throw signUpError;
+        }
         
         if (data.user && data.session === null) {
-          setSuccessMsg('Studio Invitation Dispatched. \nCheck your email to verify your account and activate your archive access.');
+          setSuccessMsg('Studio Invitation Dispatched. \n認証メールを送信しました。リンクをクリックしてStudioへの参加を確定させてください。');
         } else {
           setSuccessMsg('Account authorized. Redirecting to your archive...');
           setTimeout(() => window.location.reload(), 1000);
@@ -64,11 +70,7 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
       }
     } catch (err: any) {
       console.error("Auth Exception:", err);
-      let msg = err.message || 'Authentication error.';
-      if (msg.toLowerCase().includes('rate limit')) {
-        msg = 'SECURITY LOCK: Too many attempts. Please try again in a few minutes.';
-      }
-      setError(msg);
+      setError(err.message || 'Authentication error.');
       setLoading(false);
     }
   };
