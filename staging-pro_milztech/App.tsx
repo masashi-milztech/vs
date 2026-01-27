@@ -7,6 +7,7 @@ import { Submission, User, Editor } from './types';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { supabase, db } from './lib/supabase';
+import { sendStudioEmail, EMAIL_TEMPLATES } from './lib/email';
 
 const ADMIN_EMAILS = [
   'masashi@milz.tech', 
@@ -24,7 +25,7 @@ const App: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [showAuth, setShowAuth] = useState(false); // ランディングページからAuthへ遷移するためのフラグ
+  const [showAuth, setShowAuth] = useState(false);
   const initializationId = useRef(0);
 
   const loadSubmissions = useCallback(async (currentUserId: string, role: string, editorRecordId?: string) => {
@@ -52,9 +53,11 @@ const App: React.FC = () => {
       if (authSession?.user) {
         const authEmail = normalizeEmail(authSession.user.email);
         let role: 'admin' | 'editor' | 'user' = 'user';
+        
         if (ADMIN_EMAILS.some(e => normalizeEmail(e) === authEmail)) {
           role = 'admin';
         }
+
         let editorsList: Editor[] = [];
         try {
           editorsList = await db.editors.fetchAll() as Editor[];
@@ -62,15 +65,19 @@ const App: React.FC = () => {
         } catch (err) {
           console.warn("[Auth] Editor list fetch failed", err);
         }
+
         if (currentId !== initializationId.current) return;
+
         const matchedEditor = editorsList.find(e => normalizeEmail(e.email) === authEmail);
         let editorRecordId: string | undefined = undefined;
         if (matchedEditor) {
           editorRecordId = matchedEditor.id;
           if (role !== 'admin') role = 'editor';
         }
+
         const finalUser: User = { id: authSession.user.id, email: authEmail, role, editorRecordId };
         await loadSubmissions(finalUser.id, finalUser.role, finalUser.editorRecordId);
+        
         if (currentId !== initializationId.current) return;
         setUser(finalUser);
       } else {
@@ -109,11 +116,34 @@ const App: React.FC = () => {
   const handleUpdateStatus = async (id: string, updates: Partial<Submission>) => {
     try {
       await db.submissions.update(id, updates);
+      
+      // メール送信用のデータを特定（現在のステートまたは更新後のデータ）
+      const currentSub = submissions.find(s => s.id === id);
+      
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+
+      // 納品通知メールのトリガー
+      if (updates.resultDataUrl && currentSub?.ownerEmail) {
+        try {
+          await sendStudioEmail(
+            currentSub.ownerEmail,
+            `Results Ready for Review: ${currentSub.id}`,
+            EMAIL_TEMPLATES.DELIVERY_READY(currentSub.id)
+          );
+          console.log(`[Email] Delivery notification sent to ${currentSub.ownerEmail}`);
+        } catch (e) {
+          console.error("[Email] Delivery notification failed:", e);
+        }
+      }
     } catch (err: any) {
       console.error("Database Update Error:", err);
       alert(`Update Failed: ${err.message}`);
     }
+  };
+
+  const handleDeliverWithEmail = async (id: string, dataUrl: string) => {
+    const nextStatus = user?.role === 'admin' ? 'completed' : 'reviewing';
+    await handleUpdateStatus(id, { resultDataUrl: dataUrl, status: nextStatus });
   };
 
   const handleNewSubmission = async (s: Submission) => {
@@ -139,17 +169,13 @@ const App: React.FC = () => {
     </div>
   );
 
-  // ログインしていない場合
   if (!user) {
-    // 認証ボタンが押されたらログイン画面を表示
     if (showAuth) {
       return <Login onLogin={() => {}} onBack={() => setShowAuth(false)} />;
     }
-    // デフォルトはランディングページ
     return <LandingPage onStart={() => setShowAuth(true)} />;
   }
 
-  // ログイン済みの場合
   return (
     <Layout user={user} onLogout={handleLogout}>
       {(user.role === 'admin' || user.role === 'editor') ? (
@@ -157,7 +183,7 @@ const App: React.FC = () => {
           user={user}
           submissions={submissions} 
           onDelete={(id) => db.submissions.delete(id).then(() => setSubmissions(s => s.filter(x => x.id !== id)))}
-          onDeliver={(id, dataUrl) => handleUpdateStatus(id, { resultDataUrl: dataUrl, status: user.role === 'admin' ? 'completed' : 'reviewing' })}
+          onDeliver={handleDeliverWithEmail}
           onRefresh={() => loadSubmissions(user.id, user.role, user.editorRecordId)}
           onAssign={(id, editorId) => {
             const editorVal = editorId || undefined;
