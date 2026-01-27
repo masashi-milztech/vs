@@ -31,20 +31,23 @@ export async function sendStudioEmail(to: string, subject: string, html: string)
   }
 }
 
+// 堅牢なメール表示のためのスタイル定義
 const STYLE = {
-  container: `background-color: #FFFFFF; padding: 40px 20px; font-family: 'Inter', -apple-system, sans-serif; color: #0F172A;`,
-  card: `max-width: 540px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #F1F5F9; border-radius: 40px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.03);`,
-  header: `padding: 60px 40px 40px 40px; text-align: center;`,
-  title: `margin: 0; font-size: 10px; font-weight: 900; letter-spacing: 6px; color: #94A3B8; text-transform: uppercase; margin-bottom: 16px;`,
-  heading: `margin: 0; font-size: 36px; font-weight: 900; color: #0F172A; letter-spacing: -2px; line-height: 1.1;`,
-  body: `padding: 0 40px 60px 40px;`,
-  thumbnailContainer: `width: 100%; aspect-ratio: 16/9; background-color: #F8FAFC; border-radius: 24px; overflow: hidden; margin-bottom: 40px; border: 1px solid #F1F5F9;`,
-  thumbnail: `width: 100%; height: 100%; object-fit: cover; display: block;`,
-  infoGrid: `background: #F8FAFC; border-radius: 28px; padding: 32px; border: 1px solid #F1F5F9;`,
-  infoRow: `display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid #E2E8F0; padding-bottom: 16px;`,
-  label: `font-size: 9px; font-weight: 900; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; margin: 0;`,
-  value: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; margin: 0;`,
-  button: `display: block; width: 100%; background-color: #0F172A; color: #FFFFFF; padding: 24px; border-radius: 24px; text-align: center; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; letter-spacing: 3px; margin-top: 40px;`
+  container: `background-color: #F8FAFC; padding: 40px 10px; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #0F172A;`,
+  card: `max-width: 540px; margin: 0 auto; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 32px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.03);`,
+  header: `padding: 50px 40px 30px 40px; text-align: center;`,
+  title: `margin: 0; font-size: 10px; font-weight: 800; letter-spacing: 5px; color: #94A3B8; text-transform: uppercase; margin-bottom: 12px;`,
+  heading: `margin: 0; font-size: 32px; font-weight: 800; color: #0F172A; letter-spacing: -1.5px; line-height: 1.2;`,
+  body: `padding: 0 35px 50px 35px;`,
+  thumbnailContainer: `width: 100%; border-radius: 20px; overflow: hidden; margin-bottom: 35px; border: 1px solid #F1F5F9;`,
+  thumbnail: `width: 100%; height: auto; display: block;`,
+  infoTable: `width: 100%; background: #F8FAFC; border-radius: 20px; padding: 25px; border-collapse: separate;`,
+  label: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0; border-bottom: 1px solid #EDF2F7;`,
+  value: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0; border-bottom: 1px solid #EDF2F7;`,
+  lastLabel: `font-size: 9px; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; padding: 12px 0 0 0;`,
+  lastValue: `font-size: 13px; font-weight: 700; color: #0F172A; text-align: right; padding: 12px 0 0 0;`,
+  button: `display: block; width: 100%; background-color: #0F172A; color: #FFFFFF; padding: 22px 0; border-radius: 18px; text-align: center; font-size: 12px; font-weight: 800; text-decoration: none; text-transform: uppercase; letter-spacing: 3px; margin-top: 35px;`,
+  footerText: `text-align: center; font-size: 11px; color: #94A3B8; margin-top: 35px; font-weight: 500; line-height: 1.6;`
 };
 
 export const EMAIL_TEMPLATES = {
@@ -66,29 +69,29 @@ export const EMAIL_TEMPLATES = {
           <div style="${STYLE.thumbnailContainer}">
             <img src="${data.thumbnail}" style="${STYLE.thumbnail}" alt="Project View" />
           </div>
-          <div style="${STYLE.infoGrid}">
-            <div style="${STYLE.infoRow}">
-              <p style="${STYLE.label}">Project ID</p>
-              <p style="${STYLE.value}">${data.orderId}</p>
-            </div>
-            <div style="${STYLE.infoRow}">
-              <p style="${STYLE.label}">Service</p>
-              <p style="${STYLE.value}">${data.planName}</p>
-            </div>
-            <div style="${STYLE.infoRow}">
-              <p style="${STYLE.label}">Total Amount</p>
-              <p style="${STYLE.value}">${data.price}</p>
-            </div>
-            <div style="${STYLE.infoRow}">
-              <p style="${STYLE.label}">Ordered At</p>
-              <p style="${STYLE.value}">${data.date}</p>
-            </div>
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-              <p style="${STYLE.label}">Est. Delivery</p>
-              <p style="${STYLE.value}">${data.delivery}</p>
-            </div>
-          </div>
-          <p style="text-align: center; font-size: 11px; color: #94A3B8; margin-top: 40px; font-weight: 500; line-height: 1.6;">
+          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="${STYLE.label}">Project ID</td>
+              <td style="${STYLE.value}">${data.orderId}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.label}">Service</td>
+              <td style="${STYLE.value}">${data.planName}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.label}">Total Amount</td>
+              <td style="${STYLE.value}">${data.price}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.label}">Ordered At</td>
+              <td style="${STYLE.value}">${data.date}</td>
+            </tr>
+            <tr>
+              <td style="${STYLE.lastLabel}">Est. Delivery</td>
+              <td style="${STYLE.lastValue}">${data.delivery}</td>
+            </tr>
+          </table>
+          <p style="${STYLE.footerText}">
             Our architectural visualizers have begun processing your assets.<br/>
             You will receive another notification once the delivery is ready.
           </p>
@@ -111,14 +114,14 @@ export const EMAIL_TEMPLATES = {
           <div style="${STYLE.thumbnailContainer}">
             <img src="${data.thumbnail}" style="${STYLE.thumbnail}" alt="Staged Result" />
           </div>
-          <div style="${STYLE.infoGrid}">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <p style="${STYLE.label}">Project ID</p>
-              <p style="${STYLE.value}">${data.orderId}</p>
-            </div>
-          </div>
+          <table style="${STYLE.infoTable}" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="${STYLE.lastLabel}">Project ID</td>
+              <td style="${STYLE.lastValue}">${data.orderId}</td>
+            </tr>
+          </table>
           <a href="${data.resultUrl || 'https://milz.tech'}" style="${STYLE.button}">View Deliverables</a>
-          <p style="text-align: center; font-size: 11px; color: #94A3B8; margin-top: 40px; font-weight: 500; line-height: 1.6;">
+          <p style="${STYLE.footerText}">
             The visualization for your space is now complete.<br/>
             High-resolution assets are available in your studio archive.
           </p>
