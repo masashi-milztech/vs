@@ -1,9 +1,20 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-const getEnv = (name: string) => {
-  // @ts-ignore
-  return (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[name]) || process.env[name];
+const getEnv = (name: string): string | undefined => {
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      return import.meta.env[name];
+    }
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env[name];
+    }
+  } catch (e) {
+    return undefined;
+  }
+  return undefined;
 };
 
 const supabaseUrl = getEnv('VITE_SUPABASE_URL') || 'https://ptbyeiuzfnsreeioqeco.supabase.co';
@@ -15,11 +26,9 @@ export const db = {
   storage: {
     async upload(path: string, base64Data: string) {
       try {
-        // MIMEタイプを抽出 (例: image/png, image/jpeg)
         const mimeMatch = base64Data.match(/^data:(.*);base64,/);
         const contentType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
         
-        // Base64からBlobに変換
         const base64Content = base64Data.split(',')[1];
         const byteCharacters = atob(base64Content);
         const byteNumbers = new Array(byteCharacters.length);
@@ -43,7 +52,6 @@ export const db = {
           throw error;
         }
 
-        // 公開URLを取得
         const { data: { publicUrl } } = supabase.storage
           .from('submissions')
           .getPublicUrl(path);
