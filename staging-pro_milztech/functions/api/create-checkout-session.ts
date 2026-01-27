@@ -26,35 +26,49 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
 
   try {
     const body = await request.json() as any;
+    
+    // ボディ全体が空でないか確認
+    if (!body) {
+      return new Response(JSON.stringify({ message: "Request body is empty" }), { status: 400 });
+    }
+
     const { planTitle, amount, orderId, userEmail } = body;
     
-    // デバッグログ (Cloudflareのログで確認可能)
-    console.log("Checkout Request Payload:", body);
+    // 必須パラメータの存在確認（!amount だと 0 がエラーになるため明示的に null/undefined をチェック）
+    const missingFields = [];
+    if (amount === undefined || amount === null) missingFields.push("amount");
+    if (!orderId) missingFields.push("orderId");
+    if (!userEmail) missingFields.push("userEmail");
+
+    if (missingFields.length > 0) {
+      return new Response(JSON.stringify({ 
+        message: `Missing required parameters: ${missingFields.join(", ")}`,
+        received: body
+      }), { status: 400 });
+    }
 
     // 環境変数のチェック
     if (!env.STRIPE_SECRET_KEY) {
       return new Response(JSON.stringify({ 
-        message: "Stripe configuration missing on server. Please set STRIPE_SECRET_KEY." 
+        message: "Stripe configuration (Secret Key) is missing on the server." 
       }), { status: 500 });
     }
 
-    // 必須パラメータのチェック
-    if (!amount || !orderId || !userEmail) {
-      return new Response(JSON.stringify({ 
-        message: `Missing required parameters: ${!amount ? 'amount ' : ''}${!orderId ? 'orderId ' : ''}${!userEmail ? 'userEmail' : ''}`
-      }), { status: 400 });
+    // 数値変換
+    const unitAmount = Math.round(Number(amount));
+    if (isNaN(unitAmount) || unitAmount <= 0) {
+      return new Response(JSON.stringify({ message: "Invalid amount value." }), { status: 400 });
     }
 
-    // Stripe APIリクエスト (USD決済)
-    // 数値は必ず文字列に変換して渡す
+    // Stripe APIリクエスト
     const stripeParams = new URLSearchParams();
     stripeParams.append("mode", "payment");
     stripeParams.append("customer_email", userEmail);
     stripeParams.append("success_url", `${new URL(request.url).origin}/?session_id={CHECKOUT_SESSION_ID}&order_id=${orderId}&payment=success`);
     stripeParams.append("cancel_url", `${new URL(request.url).origin}/`);
     stripeParams.append("line_items[0][price_data][currency]", "usd");
-    stripeParams.append("line_items[0][price_data][product_data][name]", `StagingPro: ${planTitle || 'Staging Service'}`);
-    stripeParams.append("line_items[0][price_data][unit_amount]", Math.round(Number(amount)).toString());
+    stripeParams.append("line_items[0][price_data][product_data][name]", `StagingPro: ${planTitle || 'Service'}`);
+    stripeParams.append("line_items[0][price_data][unit_amount]", unitAmount.toString());
     stripeParams.append("line_items[0][quantity]", "1");
     stripeParams.append("metadata[orderId]", orderId);
     stripeParams.append("payment_method_types[0]", "card");
@@ -71,9 +85,8 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
     const session = await response.json() as any;
 
     if (!session.url) {
-      console.error("Stripe API Error Response:", session);
       return new Response(JSON.stringify({ 
-        message: session.error?.message || "Stripe session creation failed." 
+        message: session.error?.message || "Stripe failed to provide a checkout URL." 
       }), { status: 500 });
     }
 
@@ -85,8 +98,7 @@ export const onRequest = async (context: { request: Request; env: Env }) => {
       }
     });
   } catch (error: any) {
-    console.error("Internal Server Error:", error);
-    return new Response(JSON.stringify({ message: error.message || "Internal server error during checkout session creation." }), { 
+    return new Response(JSON.stringify({ message: `Server Error: ${error.message}` }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
