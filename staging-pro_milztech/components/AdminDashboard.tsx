@@ -3,6 +3,7 @@ import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Submission, PLAN_DETAILS, Editor, User, PlanType, getEstimatedDeliveryDate } from '../types';
 import { DetailModal } from './DetailModal';
 import { db } from '../lib/supabase';
+import { sendStudioEmail, RESEND_API_KEY } from '../lib/email';
 
 interface AdminDashboardProps {
   user: User;
@@ -34,6 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [viewingDetail, setViewingDetail] = useState<Submission | null>(null);
   const [showEditorManager, setShowEditorManager] = useState(false);
   const [isUploadingResult, setIsUploadingResult] = useState(false);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
   
   const [revisingSubmission, setRevisingSubmission] = useState<Submission | null>(null);
   const [revisionNotes, setRevisionNotes] = useState('');
@@ -41,6 +43,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [newEdName, setNewEdName] = useState('');
   const [newEdEmail, setNewEdEmail] = useState('');
   const [newEdSpecialty, setNewEdSpecialty] = useState('');
+
+  const handleTestEmail = async () => {
+    if (isTestingEmail) return;
+    setIsTestingEmail(true);
+    try {
+      await sendStudioEmail(
+        user.email,
+        "StagingPro Studio: Connection Test",
+        `<div style="font-family:sans-serif; padding:20px; border:1px solid #eee; border-radius:12px;">
+          <h2 style="color:#0F172A;">Connection Successful</h2>
+          <p>Your Resend API key is correctly configured for <strong>${user.email}</strong>.</p>
+          <p style="font-size:12px; color:#64748b;">Sender: info@milz.tech</p>
+        </div>`
+      );
+      alert(`Success! Test email sent to ${user.email}.\nPlease check your inbox and spam folder.`);
+    } catch (err: any) {
+      alert(`Email Test Failed:\n${err.message}\n\nAction Required:\n1. Cloudflare Pagesの "Settings > Variables" に VITE_RESEND_API_KEY を追加してください。\n2. 追加後、新しいデプロイが必要です。`);
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
 
   const filteredSubmissions = useMemo(() => {
     let result = [...submissions];
@@ -186,15 +209,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-           {user.editorRecordId && (
-             <div className="flex items-center gap-3 bg-emerald-50 px-5 py-2.5 rounded-full border border-emerald-100">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                  LINKED: {editors.find(e => e.id === user.editorRecordId)?.name || 'ACTIVE'}
-                </span>
+           <div className={`flex items-center gap-3 px-5 py-2.5 rounded-full border ${RESEND_API_KEY ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-red-50 border-red-100 text-red-600'}`}>
+              <div className={`w-2 h-2 rounded-full ${RESEND_API_KEY ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`}></div>
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                EMAIL: {RESEND_API_KEY ? 'CONFIGURED' : 'MISSING API KEY'}
+              </span>
+           </div>
+           {user.role === 'admin' && (
+             <div className="flex gap-2">
+                <button 
+                  onClick={handleTestEmail}
+                  disabled={isTestingEmail}
+                  className="px-6 py-2.5 bg-white border-2 border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-full hover:border-slate-900 hover:text-slate-900 transition-all disabled:opacity-30"
+                >
+                  {isTestingEmail ? 'Sending...' : 'Test Email'}
+                </button>
+                <button onClick={() => setShowEditorManager(true)} className="px-6 py-2.5 bg-white border-2 border-slate-900 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-900 hover:text-white transition-all">Team</button>
              </div>
            )}
-           {user.role === 'admin' && <button onClick={() => setShowEditorManager(true)} className="px-6 py-2.5 bg-white border-2 border-slate-900 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-slate-900 hover:text-white transition-all">Team</button>}
            <button onClick={onRefresh} className="px-6 py-2.5 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-full hover:bg-black shadow-lg flex items-center gap-2">
               <svg className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               Sync
