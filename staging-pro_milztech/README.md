@@ -26,16 +26,25 @@ Cloudflare Pagesの **Settings > Variables** に以下を設定してくださ�
 
 *   **VITE_RESEND_API_KEY**: Resendで発行したAPIキー。
 
+### ✅ DNS設定のチェックリスト (Resend管理画面)
+Resendで `milz.tech` を追加すると、以下のレコード登録を求められます。
+
+| レコードタイプ | ホスト名 (Name) | 内容 (Value) |
+| :--- | :--- | :--- |
+| **CNAME** | `resend1._domainkey` | (Resendが指定する値) |
+| **CNAME** | `resend2._domainkey` | (Resendが指定する値) |
+| **CNAME** | `resend3._domainkey` | (Resendが指定する値) |
+| **TXT** | `@` または `milz.tech` | `v=spf1 include:resend.com ~all` |
+| **TXT** | `_dmarc` | `v=DMARC1; p=none;` |
+
+> [!IMPORTANT]
+> すべてのレコードがResend側で **"Verified"**（緑色）にならないとメールは送信されません。
+
 ### ✅ 接続テストの手順
 1. アプリに管理者メールアドレス（`masashi@milz.tech`等）でログイン。
 2. ヘッダーの **「Production Hub」** を開く。
 3. 右上の **「Test Email」** ボタンをクリック。
 4. 自分のメールに `Connection Test` というメールが届けば完了です！
-
-### ⚠️ メールが届かない場合
-*   **Resendの管理画面** を確認してください。
-*   `Domains` セクションで `milz.tech` が **Verified** になっていますか？
-*   CloudflareのDNS設定（MX, TXTレコード等）が反映されるまで最大24時間かかる場合があります。
 
 ---
 
