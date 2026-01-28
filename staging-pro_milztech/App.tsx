@@ -130,8 +130,11 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Database Update Error:", err);
+      // PGRST204: Column not found
       if (err.code === 'PGRST204') {
-        alert("SQL Error: 'revisionNotes' column is missing in your database.\nPlease run: ALTER TABLE submissions ADD COLUMN \"revisionNotes\" text;");
+        const missingMatch = err.message?.match(/column "(.*)" does not exist/);
+        const missingCol = missingMatch ? missingMatch[1] : 'required columns';
+        alert(`【SQL実行のお願い】\nデータベースのテーブルに "${missingCol}" 列が見つかりません。最新機能を有効にするため、SupabaseのSQL Editorで以下のコマンドを実行してください：\n\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "revisionNotes" text;\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "resultRemoveUrl" text;\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "resultAddUrl" text;`);
       } else {
         alert(`Update Failed: ${err.message}`);
       }
@@ -171,6 +174,7 @@ const App: React.FC = () => {
           onRefresh={() => loadSubmissions(user.id, user.role, user.editorRecordId)}
           onAssign={(id, editorId) => handleUpdateStatus(id, { assignedEditorId: editorId || undefined, status: editorId ? 'processing' : 'pending' })}
           onApprove={(id) => handleUpdateStatus(id, { status: 'completed' })}
+          // Removed redundant onApproveBoth prop to fix TypeScript error as it's not defined in AdminDashboardProps
           onReject={async (id, notes) => handleUpdateStatus(id, { status: 'processing', revisionNotes: notes })}
           isSyncing={isSyncing} 
           editors={editors}
