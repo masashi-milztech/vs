@@ -1,16 +1,25 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Submission, PLAN_DETAILS } from '../types';
+import { Submission, PLAN_DETAILS, PlanType } from '../types';
 
 interface DetailModalProps {
   submission: Submission;
   onClose: () => void;
 }
 
+type DeliveryStage = 'remove' | 'add';
+
 export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
+  const isBoth = submission.plan === PlanType.FURNITURE_BOTH;
+  const [activeStage, setActiveStage] = useState<DeliveryStage>(
+    (isBoth && submission.resultRemoveUrl && !submission.resultAddUrl) ? 'remove' : 'add'
+  );
   const [sliderPos, setSliderPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+
+  // ステージに応じた比較画像の決定
+  const afterImageUrl = activeStage === 'remove' ? submission.resultRemoveUrl : (submission.resultAddUrl || submission.resultDataUrl);
 
   const handleDownload = (url: string, prefix: string) => {
     const link = document.createElement('a');
@@ -65,7 +74,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
         </div>
 
         <div className="flex-1 overflow-y-auto px-10 py-16 hide-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-32">
+          <div className="max-w-5xl mx-auto space-y-16">
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 p-10 bg-neutral-50 rounded-[2rem]">
               <div className="space-y-2">
@@ -85,31 +94,46 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
                   <p className="text-xs font-medium text-neutral-500 italic leading-relaxed">
                     {submission.instructions || "No specific instructions provided."}
                   </p>
-                  {submission.revisionNotes && (
-                    <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 space-y-2">
-                      <span className="text-[8px] font-black uppercase tracking-widest text-amber-600">Revision Instructions:</span>
-                      <p className="text-xs font-bold text-slate-900 leading-relaxed">{submission.revisionNotes}</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-12">
-              <div className="flex justify-between items-end border-b border-neutral-100 pb-8">
-                <h3 className="serif text-4xl font-light italic">Spatial Comparison</h3>
+              <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-neutral-100 pb-8">
+                <div className="space-y-4">
+                  <h3 className="serif text-4xl font-light italic">Spatial Comparison</h3>
+                  
+                  {/* Bothプラン専用タブ */}
+                  {isBoth && (
+                    <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                      <button 
+                        onClick={() => setActiveStage('remove')}
+                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'remove' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                      >
+                        Step 1: Removal
+                      </button>
+                      <button 
+                        onClick={() => setActiveStage('add')}
+                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'add' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                      >
+                        Step 2: Staging
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-6">
                   <button onClick={() => handleDownload(submission.dataUrl, 'ORIGINAL')} className="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-300 hover:text-black transition-colors">Source File</button>
-                  {submission.resultDataUrl && (
-                    <button onClick={() => handleDownload(submission.resultDataUrl!, 'STAGED')} className="text-[9px] font-black uppercase tracking-[0.3em] border-b-2 border-black pb-1">Final Deliverable</button>
+                  {afterImageUrl && (
+                    <button onClick={() => handleDownload(afterImageUrl, activeStage.toUpperCase())} className="text-[9px] font-black uppercase tracking-[0.3em] border-b-2 border-black pb-1">Download {activeStage === 'remove' ? 'Removed' : 'Staged'}</button>
                   )}
                 </div>
               </div>
 
               <div className="relative w-full aspect-video rounded-[1.5rem] overflow-hidden bg-neutral-100 shadow-2xl group cursor-ew-resize select-none touch-none" ref={containerRef}>
-                {submission.resultDataUrl ? (
+                {afterImageUrl ? (
                   <>
-                    <img src={submission.resultDataUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                    <img src={afterImageUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" />
                     <div 
                       className="absolute inset-0 w-full h-full overflow-hidden border-r border-white/40"
                       style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
@@ -128,6 +152,11 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 9l-3 3m0 0l3 3m-3-3h14m-3-3l3 3m0 0l-3 3" />
                         </svg>
                       </div>
+                    </div>
+                    
+                    {/* ステージ表示ラベル */}
+                    <div className="absolute bottom-6 left-6 z-20 bg-black/60 backdrop-blur text-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest">
+                       Comparison: Original vs {activeStage === 'remove' ? 'Furniture Removed' : 'Final Staging'}
                     </div>
                   </>
                 ) : (
