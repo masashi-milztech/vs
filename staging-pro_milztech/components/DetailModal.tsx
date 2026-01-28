@@ -18,7 +18,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
 
-  // ステージに応じた比較画像の決定
   const afterImageUrl = activeStage === 'remove' ? submission.resultRemoveUrl : (submission.resultAddUrl || submission.resultDataUrl);
 
   const handleDownload = (url: string, prefix: string) => {
@@ -33,7 +32,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
   const handleMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging.current || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const x = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
     const position = ((x - rect.left) / rect.width) * 100;
     setSliderPos(Math.min(Math.max(position, 0), 100));
   };
@@ -44,7 +43,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
   useEffect(() => {
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleEnd);
-    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchmove', handleMove, { passive: false });
     window.addEventListener('touchend', handleEnd);
     return () => {
       window.removeEventListener('mousemove', handleMove);
@@ -55,145 +54,99 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-12 bg-black/95 animate-in fade-in duration-500 overflow-hidden">
-      <div className="bg-white w-full h-full md:rounded-[2rem] overflow-hidden flex flex-col relative">
-        
-        <div className="px-10 py-8 border-b border-neutral-100 flex justify-between items-center bg-white sticky top-0 z-20">
-          <div className="flex items-center gap-8">
-            <h2 className="serif text-3xl font-bold text-black lowercase">{PLAN_DETAILS[submission.plan].title}</h2>
-            <div className="px-4 py-1.5 bg-neutral-50 rounded-full text-[9px] font-black uppercase tracking-[0.3em] text-neutral-300">
-              Project Archive {submission.id}
+    <div className="fixed inset-0 z-[150] flex flex-col bg-black animate-in fade-in duration-300 overflow-hidden">
+      {/* Mobile-Friendly Header */}
+      <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-black sticky top-0 z-50">
+        <div className="flex flex-col">
+          <h2 className="text-white text-sm font-black uppercase tracking-tight truncate max-w-[200px]">{PLAN_DETAILS[submission.plan].title}</h2>
+          <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{submission.id}</span>
+        </div>
+        <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white md:rounded-t-[3rem] mt-2 shadow-2xl pb-20 no-scrollbar">
+        <div className="max-w-4xl mx-auto p-6 md:p-12 space-y-10">
+          
+          {/* Info Section */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-6 bg-slate-50 rounded-3xl">
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Ordered On</span>
+              <p className="text-[10px] font-black text-slate-900">{new Date(submission.timestamp).toLocaleDateString()}</p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Phase</span>
+              <p className="text-[10px] font-black text-slate-900 uppercase">{submission.status}</p>
+            </div>
+            <div className="col-span-2 md:col-span-1 space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Instructions</span>
+              <p className="text-[10px] font-medium text-slate-500 italic line-clamp-2">{submission.instructions || "Standard processing"}</p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="w-12 h-12 flex items-center justify-center rounded-full border border-neutral-100 hover:bg-black hover:text-white transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-10 py-16 hide-scrollbar">
-          <div className="max-w-5xl mx-auto space-y-16">
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 p-10 bg-neutral-50 rounded-[2rem]">
-              <div className="space-y-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-300">Timestamp</span>
-                <p className="text-xs font-bold text-black">{new Date(submission.timestamp).toLocaleString()}</p>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-300">Current Phase</span>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-black flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${submission.status === 'completed' ? 'bg-black' : 'bg-neutral-200 animate-pulse'}`}></span>
-                  {submission.status}
-                </p>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-neutral-300">Design Guidance</span>
-                <div className="space-y-4">
-                  <p className="text-xs font-medium text-neutral-500 italic leading-relaxed">
-                    {submission.instructions || "No specific instructions provided."}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-12">
-              <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-neutral-100 pb-8">
-                <div className="space-y-4">
-                  <h3 className="serif text-4xl font-light italic">Spatial Comparison</h3>
-                  
-                  {/* Bothプラン専用タブ */}
-                  {isBoth && (
-                    <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
-                      <button 
-                        onClick={() => setActiveStage('remove')}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'remove' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
-                      >
-                        Step 1: Removal
-                      </button>
-                      <button 
-                        onClick={() => setActiveStage('add')}
-                        className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'add' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
-                      >
-                        Step 2: Staging
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-6">
-                  <button onClick={() => handleDownload(submission.dataUrl, 'ORIGINAL')} className="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-300 hover:text-black transition-colors">Source File</button>
-                  {afterImageUrl && (
-                    <button onClick={() => handleDownload(afterImageUrl, activeStage.toUpperCase())} className="text-[9px] font-black uppercase tracking-[0.3em] border-b-2 border-black pb-1">Download {activeStage === 'remove' ? 'Removed' : 'Staged'}</button>
-                  )}
-                </div>
-              </div>
-
-              <div className="relative w-full aspect-video rounded-[1.5rem] overflow-hidden bg-neutral-100 shadow-2xl group cursor-ew-resize select-none touch-none" ref={containerRef}>
-                {afterImageUrl ? (
-                  <>
-                    <img src={afterImageUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" />
-                    <div 
-                      className="absolute inset-0 w-full h-full overflow-hidden border-r border-white/40"
-                      style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
-                    >
-                      <img src={submission.dataUrl} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
-                    </div>
-
-                    <div 
-                      className="absolute inset-y-0 z-10"
-                      style={{ left: `${sliderPos}%` }}
-                      onMouseDown={handleStart}
-                      onTouchStart={handleStart}
-                    >
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white/90 backdrop-blur-md rounded-full shadow-2xl flex items-center justify-center transition-transform group-active:scale-90">
-                        <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M8 9l-3 3m0 0l3 3m-3-3h14m-3-3l3 3m0 0l-3 3" />
-                        </svg>
-                      </div>
-                    </div>
-                    
-                    {/* ステージ表示ラベル */}
-                    <div className="absolute bottom-6 left-6 z-20 bg-black/60 backdrop-blur text-white px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest">
-                       Comparison: Original vs {activeStage === 'remove' ? 'Furniture Removed' : 'Final Staging'}
-                    </div>
-                  </>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-neutral-300 text-center space-y-4">
-                    <span className="serif text-7xl font-light italic opacity-20">Processing</span>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em]">Digital transformation underway</p>
+          {/* Visualization Section */}
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+              <div className="space-y-3 w-full">
+                <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter jakarta">Comparison</h3>
+                {isBoth && (
+                  <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-fit">
+                    <button onClick={() => setActiveStage('remove')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'remove' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>01. Remove</button>
+                    <button onClick={() => setActiveStage('add')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'add' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>02. Staging</button>
                   </div>
                 )}
               </div>
             </div>
 
-            {submission.referenceImages && submission.referenceImages.length > 0 && (
-              <div className="space-y-16 border-t border-neutral-100 pt-32 pb-10">
-                <h3 className="serif text-3xl font-light italic">Design Benchmarks</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                  {submission.referenceImages.map((ref) => (
-                    <div key={ref.id} className="space-y-6 group">
-                      <div className="relative aspect-[3/4] bg-neutral-50 rounded-2xl overflow-hidden hover:scale-[1.02] transition-all duration-500">
-                        <img src={ref.dataUrl} className="w-full h-full object-cover" alt="Reference" />
-                        <button 
-                          onClick={() => handleDownload(ref.dataUrl, 'REFERENCE')}
-                          className="absolute bottom-5 right-5 p-3 bg-white text-black rounded-full shadow-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        </button>
-                      </div>
-                      {ref.description && (
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-300 leading-relaxed px-1">
-                          Ref: {ref.description}
-                        </p>
-                      )}
+            {/* Slider Engine */}
+            <div className="relative w-full aspect-[4/3] md:aspect-video rounded-3xl overflow-hidden bg-slate-100 shadow-xl group cursor-ew-resize touch-none select-none" ref={containerRef}>
+              {afterImageUrl ? (
+                <>
+                  <img src={afterImageUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                  <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
+                    <img src={submission.dataUrl} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
+                  </div>
+                  <div className="absolute inset-y-0 z-20 pointer-events-none" style={{ left: `${sliderPos}%` }}>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-slate-900/5 pointer-events-auto">
+                      <svg className="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" /></svg>
                     </div>
-                  ))}
+                    <div className="absolute inset-y-0 w-0.5 bg-white/50 backdrop-blur shadow-xl -translate-x-1/2"></div>
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-slate-200">
+                  <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-300 rounded-full animate-spin mb-4"></div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em]">Rendering Visuals</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Action Buttons for Mobile */}
+            <div className="grid grid-cols-2 gap-4">
+              <button onClick={() => handleDownload(submission.dataUrl, 'SOURCE')} className="py-4 border-2 border-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400">Download Source</button>
+              {afterImageUrl && (
+                <button onClick={() => handleDownload(afterImageUrl, 'RESULT')} className="py-4 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg">Download Result</button>
+              )}
+            </div>
           </div>
+
+          {/* Reference Showcase */}
+          {submission.referenceImages && submission.referenceImages.length > 0 && (
+            <div className="space-y-6 pt-10 border-t border-slate-100">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Style References</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {submission.referenceImages.map((ref) => (
+                  <div key={ref.id} className="aspect-square rounded-2xl overflow-hidden bg-slate-50 relative group">
+                    <img src={ref.dataUrl} className="w-full h-full object-cover" alt="Ref" />
+                    <button onClick={() => handleDownload(ref.dataUrl, 'REF')} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
