@@ -53,18 +53,13 @@ const App: React.FC = () => {
       if (authSession?.user) {
         const authEmail = normalizeEmail(authSession.user.email);
         let role: 'admin' | 'editor' | 'user' = 'user';
-        
-        if (ADMIN_EMAILS.some(e => normalizeEmail(e) === authEmail)) {
-          role = 'admin';
-        }
+        if (ADMIN_EMAILS.some(e => normalizeEmail(e) === authEmail)) role = 'admin';
 
         let editorsList: Editor[] = [];
         try {
           editorsList = await db.editors.fetchAll() as Editor[];
           setEditors(editorsList);
-        } catch (err) {
-          console.warn("[Auth] Editor list fetch failed", err);
-        }
+        } catch (err) { console.warn("[Auth] Editor list failed", err); }
 
         if (currentId !== initializationId.current) return;
 
@@ -77,100 +72,69 @@ const App: React.FC = () => {
 
         const finalUser: User = { id: authSession.user.id, email: authEmail, role, editorRecordId };
         await loadSubmissions(finalUser.id, finalUser.role, finalUser.editorRecordId);
-        
         if (currentId !== initializationId.current) return;
         setUser(finalUser);
       } else {
         setUser(null);
         setSubmissions([]);
       }
-    } catch (err) {
-      console.error("[Auth] Initialization error:", err);
+    } catch (err) { 
+      console.error("[Auth] Initialization error:", err); 
     } finally {
-      if (currentId === initializationId.current) {
-        setIsInitializing(false);
-      }
+      if (currentId === initializationId.current) setIsInitializing(false);
     }
   };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => identifyAndInitialize(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN') setIsInitializing(true);
-      if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION' || _event === 'SIGNED_OUT') {
-        identifyAndInitialize(session);
+      if (_event === 'SIGNED_IN' || _event === 'INITIAL_SESSION') {
+        setIsInitializing(true);
       }
+      identifyAndInitialize(session);
     });
     return () => subscription.unsubscribe();
   }, [loadSubmissions]);
 
   const handleLogout = async () => {
     setIsInitializing(true);
+    await supabase.auth.signOut();
     setUser(null);
     setShowAuth(false);
     setSubmissions([]);
-    await supabase.auth.signOut();
     setIsInitializing(false);
   };
 
   const handleUpdateStatus = async (id: string, updates: Partial<Submission>) => {
     try {
-      // 1. DB更新を実行
       await db.submissions.update(id, updates);
-      
-      // 2. ローカルステートを更新
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+      
+      // 最終納品（AddUrlまたはDataUrlが完了）時に通知
+      const isFinalDelivery = updates.status === 'completed' || updates.status === 'reviewing';
+      const hasResult = !!(updates.resultAddUrl || updates.resultDataUrl);
 
-      // 3. 納品通知の判定
-      if (updates.resultDataUrl) {
-        // 重要: ステートに頼らず、DBから最新の完全なデータを直接取得する
-        const { data: freshSub, error } = await supabase
-          .from('submissions')
-          .select('*')
-          .eq('id', id)
-          .single();
-
-        if (!error && freshSub && freshSub.ownerEmail) {
-          try {
-            const planTitle = PLAN_DETAILS[freshSub.plan as keyof typeof PLAN_DETAILS]?.title || 'Staging Service';
-            const orderDateFormatted = new Date(freshSub.timestamp).toLocaleString('en-US', {
-              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-            });
-
-            await sendStudioEmail(
-              freshSub.ownerEmail,
-              `Results Ready: ${freshSub.id}`,
-              EMAIL_TEMPLATES.DELIVERY_READY({
-                orderId: freshSub.id,
-                planName: planTitle,
-                date: orderDateFormatted,
-                thumbnail: updates.resultDataUrl, // アップロードされた最新の画像
-                resultUrl: window.location.origin
-              })
-            );
-          } catch (emailErr) {
-            console.error("[Email] Delivery notification failed:", emailErr);
-          }
+      if (isFinalDelivery && hasResult) {
+        const { data: freshSub } = await supabase.from('submissions').select('*').eq('id', id).single();
+        if (freshSub?.ownerEmail) {
+          const planTitle = PLAN_DETAILS[freshSub.plan as keyof typeof PLAN_DETAILS]?.title || 'Staging Service';
+          const orderDateFormatted = new Date(freshSub.timestamp).toLocaleString();
+          await sendStudioEmail(freshSub.ownerEmail, `Results Ready: ${freshSub.id}`, EMAIL_TEMPLATES.DELIVERY_READY({ 
+            orderId: freshSub.id, 
+            planName: planTitle, 
+            date: orderDateFormatted, 
+            thumbnail: (updates.resultAddUrl || updates.resultDataUrl || ''), 
+            resultUrl: window.location.origin 
+          }));
         }
       }
     } catch (err: any) {
       console.error("Database Update Error:", err);
-      alert(`Update Failed: ${err.message}`);
-    }
-  };
-
-  const handleDeliverWithEmail = async (id: string, dataUrl: string) => {
-    const nextStatus = user?.role === 'admin' ? 'completed' : 'reviewing';
-    await handleUpdateStatus(id, { resultDataUrl: dataUrl, status: nextStatus });
-  };
-
-  const handleNewSubmission = async (s: Submission) => {
-    try {
-      await db.submissions.insert(s);
-      setSubmissions(prev => [s, ...prev]);
-    } catch (err: any) {
-      console.error("Insert Error:", err);
-      throw err;
+      if (err.code === 'PGRST204') {
+        alert("SQL Error: 'revisionNotes' column is missing in your database.\nPlease run: ALTER TABLE submissions ADD COLUMN \"revisionNotes\" text;");
+      } else {
+        alert(`Update Failed: ${err.message}`);
+      }
     }
   };
 
@@ -194,36 +158,33 @@ const App: React.FC = () => {
     return <LandingPage onStart={() => setShowAuth(true)} />;
   }
 
+  const isInternalMember = user.role === 'admin' || user.role === 'editor';
+
   return (
     <Layout user={user} onLogout={handleLogout}>
-      {(user.role === 'admin' || user.role === 'editor') ? (
+      {isInternalMember ? (
         <AdminDashboard 
-          user={user}
+          user={user} 
           submissions={submissions} 
           onDelete={(id) => db.submissions.delete(id).then(() => setSubmissions(s => s.filter(x => x.id !== id)))}
-          onDeliver={handleDeliverWithEmail}
+          onDeliver={(id, updates) => handleUpdateStatus(id, updates)}
           onRefresh={() => loadSubmissions(user.id, user.role, user.editorRecordId)}
-          onAssign={(id, editorId) => {
-            const editorVal = editorId || undefined;
-            handleUpdateStatus(id, { assignedEditorId: editorVal, status: editorId ? 'processing' : 'pending' });
-          }}
+          onAssign={(id, editorId) => handleUpdateStatus(id, { assignedEditorId: editorId || undefined, status: editorId ? 'processing' : 'pending' })}
           onApprove={(id) => handleUpdateStatus(id, { status: 'completed' })}
-          onReject={(id, notes) => handleUpdateStatus(id, { status: 'processing', revisionNotes: notes })}
-          isSyncing={isSyncing}
+          onReject={async (id, notes) => handleUpdateStatus(id, { status: 'processing', revisionNotes: notes })}
+          isSyncing={isSyncing} 
           editors={editors}
           onAddEditor={async (name, specialty, email) => {
-            const newEditor = { id: `ed_${Math.random().toString(36).substr(2, 5)}`, name, email: email?.toLowerCase().trim(), specialty };
-            await db.editors.insert(newEditor);
-            const list = await db.editors.fetchAll() as Editor[];
-            setEditors(list);
+            await db.editors.insert({ id: `ed_${Math.random().toString(36).substr(2, 5)}`, name, email: email?.toLowerCase().trim(), specialty });
+            setEditors(await db.editors.fetchAll() as Editor[]);
           }}
           onDeleteEditor={(id) => db.editors.delete(id).then(() => setEditors(e => e.filter(x => x.id !== id)))}
         />
       ) : (
         <ClientPlatform 
-          user={user}
-          onSubmission={handleNewSubmission} 
-          userSubmissions={submissions}
+          user={user} 
+          onSubmission={async (s) => { await db.submissions.insert(s); setSubmissions(prev => [s, ...prev]); }} 
+          userSubmissions={submissions} 
         />
       )}
     </Layout>
