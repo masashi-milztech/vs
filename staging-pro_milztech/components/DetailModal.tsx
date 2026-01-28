@@ -29,16 +29,34 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
     document.body.removeChild(link);
   };
 
-  const handleMove = (e: MouseEvent | TouchEvent) => {
-    if (!isDragging.current || !containerRef.current) return;
+  const updatePosition = (clientX: number) => {
+    if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
-    const position = ((x - rect.left) / rect.width) * 100;
+    const position = ((clientX - rect.left) / rect.width) * 100;
     setSliderPos(Math.min(Math.max(position, 0), 100));
   };
 
-  const handleStart = () => { isDragging.current = true; };
-  const handleEnd = () => { isDragging.current = false; };
+  const handleMove = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging.current) return;
+    
+    // スライダー操作中のページスクロールを防止
+    if ('touches' in e) {
+      if (e.cancelable) e.preventDefault();
+      updatePosition(e.touches[0].clientX);
+    } else {
+      updatePosition((e as MouseEvent).clientX);
+    }
+  };
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+    isDragging.current = true;
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    updatePosition(clientX);
+  };
+
+  const handleEnd = () => {
+    isDragging.current = false;
+  };
 
   useEffect(() => {
     window.addEventListener('mousemove', handleMove);
@@ -55,7 +73,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
 
   return (
     <div className="fixed inset-0 z-[150] flex flex-col bg-black animate-in fade-in duration-300 overflow-hidden">
-      {/* Mobile-Friendly Header */}
+      {/* Header */}
       <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-black sticky top-0 z-50">
         <div className="flex flex-col">
           <h2 className="text-white text-sm font-black uppercase tracking-tight truncate max-w-[200px]">{PLAN_DETAILS[submission.plan].title}</h2>
@@ -100,18 +118,23 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
             </div>
 
             {/* Slider Engine */}
-            <div className="relative w-full aspect-[4/3] md:aspect-video rounded-3xl overflow-hidden bg-slate-100 shadow-xl group cursor-ew-resize touch-none select-none" ref={containerRef}>
+            <div 
+              className="relative w-full aspect-[4/3] md:aspect-video rounded-3xl overflow-hidden bg-slate-100 shadow-xl group cursor-ew-resize touch-none select-none border border-slate-100" 
+              ref={containerRef}
+              onMouseDown={handleStart}
+              onTouchStart={handleStart}
+            >
               {afterImageUrl ? (
                 <>
-                  <img src={afterImageUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" />
+                  <img src={afterImageUrl} className="absolute inset-0 w-full h-full object-cover" alt="After" draggable="false" />
                   <div className="absolute inset-0 w-full h-full overflow-hidden" style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}>
-                    <img src={submission.dataUrl} className="absolute inset-0 w-full h-full object-cover" alt="Before" />
+                    <img src={submission.dataUrl} className="absolute inset-0 w-full h-full object-cover" alt="Before" draggable="false" />
                   </div>
                   <div className="absolute inset-y-0 z-20 pointer-events-none" style={{ left: `${sliderPos}%` }}>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 md:w-14 md:h-14 bg-white rounded-full shadow-2xl flex items-center justify-center border-4 border-slate-900/5 pointer-events-auto">
                       <svg className="w-5 h-5 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" /></svg>
                     </div>
-                    <div className="absolute inset-y-0 w-0.5 bg-white/50 backdrop-blur shadow-xl -translate-x-1/2"></div>
+                    <div className="absolute inset-y-0 w-1 bg-white/80 backdrop-blur shadow-xl -translate-x-1/2"></div>
                   </div>
                 </>
               ) : (
@@ -124,9 +147,9 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
 
             {/* Action Buttons for Mobile */}
             <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => handleDownload(submission.dataUrl, 'SOURCE')} className="py-4 border-2 border-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400">Download Source</button>
+              <button onClick={() => handleDownload(submission.dataUrl, 'SOURCE')} className="py-4 border-2 border-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Download Source</button>
               {afterImageUrl && (
-                <button onClick={() => handleDownload(afterImageUrl, 'RESULT')} className="py-4 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg">Download Result</button>
+                <button onClick={() => handleDownload(afterImageUrl, 'RESULT')} className="py-4 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg hover:bg-black transition-all">Download Result</button>
               )}
             </div>
           </div>
