@@ -67,7 +67,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* Feature Grid - Optimized Spacing */}
+      {/* Feature Grid */}
       <section className="py-20 md:py-40 bg-slate-50 px-6">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-16">
           {[
@@ -84,7 +84,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* (Remaining LandingPage content stays logically the same, focusing on spacing) */}
+      {/* Archive Section */}
       <section ref={showcaseRef} className="py-20 md:py-40 px-6 max-w-[1400px] mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-10 mb-20">
           <div className="space-y-4 text-center md:text-left">
@@ -97,7 +97,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-20">
-           {/* Portfolio Items */}
            <div className="aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-slate-100 relative group">
               <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=1000" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="Showcase" />
               <div className="absolute top-6 left-6 bg-white/90 backdrop-blur px-3 py-1.5 rounded-full text-[8px] font-black tracking-widest uppercase shadow-sm">Furniture Addition</div>
@@ -109,7 +108,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
         </div>
       </section>
 
-      {/* Production Plans - Mobile Card Adjustments */}
+      {/* Production Plans */}
       <section className="py-20 md:py-60 px-6 bg-white">
         <div className="max-w-[1400px] mx-auto space-y-20">
           <div className="text-center space-y-4">
@@ -127,7 +126,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                     <p className="text-slate-400 text-xs font-medium leading-relaxed">{plan.description}</p>
                   </div>
                   <div className="flex flex-col gap-6 pt-6 border-t border-slate-100">
-                    <div className="flex flex-col"><span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Fee per image</span><span className="text-3xl md:text-4xl font-black text-slate-900 jakarta">{plan.price}</span></div>
+                    <div className="flex flex-col">
+                      <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Fee per image</span>
+                      <span className="text-3xl md:text-4xl font-black text-slate-900 jakarta">{plan.price}</span>
+                    </div>
                     <button onClick={onStart} className="w-full py-5 rounded-2xl bg-slate-900 text-white text-[9px] font-black uppercase tracking-[0.4em] shadow-xl">Initialize</button>
                   </div>
                 </div>
@@ -136,6 +138,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
           </div>
         </div>
       </section>
+
+      {/* Standard 3-Day Delivery Banner - RESTORED */}
+      <section className="px-6 py-20 md:py-40 bg-slate-900 relative overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none">
+          <span className="text-[40vw] font-black uppercase tracking-tighter">Studio</span>
+        </div>
+        <div className="max-w-[1400px] mx-auto relative z-10 text-center space-y-12">
+          <div className="space-y-4">
+            <h2 className="text-4xl md:text-[7rem] font-black text-white italic tracking-tighter uppercase leading-[0.9] jakarta">
+              Standard <br className="md:hidden" /> 3-Day Delivery.
+            </h2>
+            <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.5em]">
+              *Excluding order date, Saturdays, and Sundays.
+            </p>
+          </div>
+          <button 
+            onClick={onStart}
+            className="px-12 md:px-20 py-6 md:py-8 bg-white text-slate-900 rounded-full text-[10px] md:text-[13px] font-black uppercase tracking-[0.4em] shadow-2xl hover:bg-slate-100 transition-all inline-block"
+          >
+            Join the Circle
+          </button>
+        </div>
+      </section>
+
+      {/* Minimal Studio Footer - RESTORED */}
+      <footer className="py-20 md:py-32 px-6 bg-white text-center space-y-12">
+        <div className="space-y-3">
+          <h4 className="text-[10px] md:text-[12px] font-black text-slate-900 uppercase tracking-[0.6em]">
+            StagingPro International Studio
+          </h4>
+          <p className="text-[8px] md:text-[9px] font-bold text-slate-300 uppercase tracking-[0.4em]">
+            Visualizing the future of real estate assets since 2025.
+          </p>
+        </div>
+        
+        <div className="pt-20">
+          <span className="text-[9px] font-black text-slate-200 uppercase tracking-[0.3em]">
+            Powered by milz.tech
+          </span>
+        </div>
+      </footer>
     </div>
   );
 };
