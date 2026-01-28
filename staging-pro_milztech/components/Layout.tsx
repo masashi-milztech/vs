@@ -106,7 +106,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           <nav className="flex items-center gap-10">
             <div className="hidden sm:flex flex-col items-end">
               <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] leading-none mb-1.5">Authenticated</span>
-              <span className="text-[11px] font-extrabold text-slate-900 uppercase tracking-widest">{user.email}</span>
+              <span className="text-[11px] font-extrabold text-slate-900 uppercase tracking-widest">{user?.email || 'N/A'}</span>
             </div>
             <button
               onClick={onLogout}
