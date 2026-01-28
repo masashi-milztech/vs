@@ -48,7 +48,9 @@ export interface Submission {
   fileName: string;
   fileSize: number;
   dataUrl: string; 
-  resultDataUrl?: string; 
+  resultDataUrl?: string; // Legacy/Main result
+  resultRemoveUrl?: string; // For BOTH plan - Removal stage result
+  resultAddUrl?: string; // For BOTH plan or ADD plan - Final stage result
   instructions?: string; 
   revisionNotes?: string; 
   referenceImages?: ReferenceImage[]; 
