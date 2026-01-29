@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ClientPlatform } from './components/ClientPlatform';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
-import { Submission, User, Editor, PLAN_DETAILS } from './types';
+import { Submission, User, Editor, DEFAULT_PLANS, ArchiveProject, Plan } from './types';
 import { Layout } from './components/Layout';
 import { Login } from './components/Login';
 import { supabase, db } from './lib/supabase';
@@ -23,10 +23,34 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [editors, setEditors] = useState<Editor[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [archiveProjects, setArchiveProjects] = useState<ArchiveProject[]>([]);
+  const [plans, setPlans] = useState<Record<string, Plan>>(DEFAULT_PLANS);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
   const initializationId = useRef(0);
+
+  const loadPlans = useCallback(async () => {
+    try {
+      const data = await db.plans.fetchAll() as Plan[];
+      if (data && data.length > 0) {
+        const planMap: Record<string, Plan> = {};
+        data.forEach(p => { planMap[p.id] = p; });
+        setPlans(planMap);
+      }
+    } catch (e) {
+      console.warn("[Plans] Load failed (using defaults)");
+    }
+  }, []);
+
+  const loadArchive = useCallback(async () => {
+    try {
+      const data = await db.archive.fetchAll() as ArchiveProject[];
+      setArchiveProjects(data || []);
+    } catch (e) {
+      console.warn("[Archive] Load failed (table might be missing)");
+    }
+  }, []);
 
   const loadSubmissions = useCallback(async (currentUserId: string, role: string, editorRecordId?: string) => {
     setIsSyncing(true);
@@ -50,6 +74,8 @@ const App: React.FC = () => {
   const identifyAndInitialize = async (authSession: any) => {
     const currentId = ++initializationId.current;
     try {
+      await Promise.all([loadArchive(), loadPlans()]);
+      
       if (authSession?.user) {
         const authEmail = normalizeEmail(authSession.user.email);
         let role: 'admin' | 'editor' | 'user' = 'user';
@@ -94,7 +120,7 @@ const App: React.FC = () => {
       identifyAndInitialize(session);
     });
     return () => subscription.unsubscribe();
-  }, [loadSubmissions]);
+  }, [loadSubmissions, loadArchive, loadPlans]);
 
   const handleLogout = async () => {
     setIsInitializing(true);
@@ -110,14 +136,13 @@ const App: React.FC = () => {
       await db.submissions.update(id, updates);
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
       
-      // 最終納品（AddUrlまたはDataUrlが完了）時に通知
       const isFinalDelivery = updates.status === 'completed' || updates.status === 'reviewing';
       const hasResult = !!(updates.resultAddUrl || updates.resultDataUrl);
 
       if (isFinalDelivery && hasResult) {
         const { data: freshSub } = await supabase.from('submissions').select('*').eq('id', id).single();
         if (freshSub?.ownerEmail) {
-          const planTitle = PLAN_DETAILS[freshSub.plan as keyof typeof PLAN_DETAILS]?.title || 'Staging Service';
+          const planTitle = plans[freshSub.plan]?.title || 'Staging Service';
           const orderDateFormatted = new Date(freshSub.timestamp).toLocaleString();
           await sendStudioEmail(freshSub.ownerEmail, `Results Ready: ${freshSub.id}`, EMAIL_TEMPLATES.DELIVERY_READY({ 
             orderId: freshSub.id, 
@@ -130,11 +155,8 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Database Update Error:", err);
-      // PGRST204: Column not found
       if (err.code === 'PGRST204') {
-        const missingMatch = err.message?.match(/column "(.*)" does not exist/);
-        const missingCol = missingMatch ? missingMatch[1] : 'required columns';
-        alert(`【SQL実行のお願い】\nデータベースのテーブルに "${missingCol}" 列が見つかりません。最新機能を有効にするため、SupabaseのSQL Editorで以下のコマンドを実行してください：\n\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "revisionNotes" text;\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "resultRemoveUrl" text;\nALTER TABLE submissions ADD COLUMN IF NOT EXISTS "resultAddUrl" text;`);
+        alert(`Database Sync Error. Please check SQL configuration.`);
       } else {
         alert(`Update Failed: ${err.message}`);
       }
@@ -149,7 +171,7 @@ const App: React.FC = () => {
       </div>
       <div className="text-center space-y-2">
         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900">Synchronizing Session</p>
-        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Accessing StagingPro Studio Cluster</p>
+        <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Accessing StagingPro Studio</p>
       </div>
     </div>
   );
@@ -158,23 +180,24 @@ const App: React.FC = () => {
     if (showAuth) {
       return <Login onLogin={() => {}} onBack={() => setShowAuth(false)} />;
     }
-    return <LandingPage onStart={() => setShowAuth(true)} />;
+    return <LandingPage onStart={() => setShowAuth(true)} archiveProjects={archiveProjects} plans={plans} />;
   }
 
   const isInternalMember = user.role === 'admin' || user.role === 'editor';
 
   return (
-    <Layout user={user} onLogout={handleLogout}>
+    <Layout user={user} onLogout={handleLogout} plans={plans}>
       {isInternalMember ? (
         <AdminDashboard 
           user={user} 
           submissions={submissions} 
+          archiveProjects={archiveProjects}
+          plans={plans}
           onDelete={(id) => db.submissions.delete(id).then(() => setSubmissions(s => s.filter(x => x.id !== id)))}
           onDeliver={(id, updates) => handleUpdateStatus(id, updates)}
-          onRefresh={() => loadSubmissions(user.id, user.role, user.editorRecordId)}
+          onRefresh={() => { loadSubmissions(user.id, user.role, user.editorRecordId); loadArchive(); loadPlans(); }}
           onAssign={(id, editorId) => handleUpdateStatus(id, { assignedEditorId: editorId || undefined, status: editorId ? 'processing' : 'pending' })}
           onApprove={(id) => handleUpdateStatus(id, { status: 'completed' })}
-          // Removed redundant onApproveBoth prop to fix TypeScript error as it's not defined in AdminDashboardProps
           onReject={async (id, notes) => handleUpdateStatus(id, { status: 'processing', revisionNotes: notes })}
           isSyncing={isSyncing} 
           editors={editors}
@@ -183,10 +206,13 @@ const App: React.FC = () => {
             setEditors(await db.editors.fetchAll() as Editor[]);
           }}
           onDeleteEditor={(id) => db.editors.delete(id).then(() => setEditors(e => e.filter(x => x.id !== id)))}
+          onUpdateArchive={loadArchive}
+          onUpdatePlans={loadPlans}
         />
       ) : (
         <ClientPlatform 
           user={user} 
+          plans={plans}
           onSubmission={async (s) => { await db.submissions.insert(s); setSubmissions(prev => [s, ...prev]); }} 
           userSubmissions={submissions} 
         />
