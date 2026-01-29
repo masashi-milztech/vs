@@ -1,15 +1,17 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Submission, PLAN_DETAILS, PlanType } from '../types';
+import { Submission, Plan, PlanType } from '../types';
 
 interface DetailModalProps {
   submission: Submission;
+  plans: Record<string, Plan>;
   onClose: () => void;
+  onTriggerCheckout?: (orderId: string, planTitle: string, amount: number) => Promise<void>;
 }
 
 type DeliveryStage = 'remove' | 'add';
 
-export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose }) => {
+export const DetailModal: React.FC<DetailModalProps> = ({ submission, plans, onClose, onTriggerCheckout }) => {
   const isBoth = submission.plan === PlanType.FURNITURE_BOTH;
   const [activeStage, setActiveStage] = useState<DeliveryStage>(
     (isBoth && submission.resultRemoveUrl && !submission.resultAddUrl) ? 'remove' : 'add'
@@ -19,6 +21,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
   const isDragging = useRef(false);
 
   const afterImageUrl = activeStage === 'remove' ? submission.resultRemoveUrl : (submission.resultAddUrl || submission.resultDataUrl);
+  const needsPayment = submission.plan === PlanType.FLOOR_PLAN_CG && submission.paymentStatus === 'quote_pending' && submission.quotedAmount;
 
   const handleDownload = (url: string, prefix: string) => {
     const link = document.createElement('a');
@@ -38,10 +41,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
 
   const handleMove = (e: MouseEvent | TouchEvent) => {
     if (!isDragging.current) return;
-    
-    // スライダー操作中のページスクロールを防止
     if ('touches' in e) {
-      if (e.cancelable) e.preventDefault();
       updatePosition(e.touches[0].clientX);
     } else {
       updatePosition((e as MouseEvent).clientX);
@@ -76,7 +76,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
       {/* Header */}
       <div className="px-6 py-4 border-b border-white/10 flex justify-between items-center bg-black sticky top-0 z-50">
         <div className="flex flex-col">
-          <h2 className="text-white text-sm font-black uppercase tracking-tight truncate max-w-[200px]">{PLAN_DETAILS[submission.plan].title}</h2>
+          <h2 className="text-white text-sm font-black uppercase tracking-tight truncate max-w-[200px]">{plans[submission.plan]?.title || submission.plan}</h2>
           <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{submission.id}</span>
         </div>
         <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all">
@@ -87,28 +87,49 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
       <div className="flex-1 overflow-y-auto overflow-x-hidden bg-white md:rounded-t-[3rem] mt-2 shadow-2xl pb-20 no-scrollbar">
         <div className="max-w-4xl mx-auto p-6 md:p-12 space-y-10">
           
-          {/* Info Section */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 p-6 bg-slate-50 rounded-3xl">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 p-6 bg-slate-50 rounded-3xl">
             <div className="space-y-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Ordered On</span>
               <p className="text-[10px] font-black text-slate-900">{new Date(submission.timestamp).toLocaleDateString()}</p>
             </div>
             <div className="space-y-1">
               <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Phase</span>
-              <p className="text-[10px] font-black text-slate-900 uppercase">{submission.status}</p>
+              <p className="text-[10px] font-black text-slate-900 uppercase">{submission.status.replace('_', ' ')}</p>
             </div>
-            <div className="col-span-2 md:col-span-1 space-y-1">
-              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Instructions</span>
-              <p className="text-[10px] font-medium text-slate-500 italic line-clamp-2">{submission.instructions || "Standard processing"}</p>
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Amount</span>
+              <p className="text-[10px] font-black text-slate-900 uppercase">
+                {submission.quotedAmount ? `$ ${(submission.quotedAmount/100).toFixed(2)}` : (plans[submission.plan]?.price || '-')}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">Payment</span>
+              <p className={`text-[10px] font-black uppercase ${submission.paymentStatus === 'paid' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                {submission.paymentStatus.replace('_', ' ')}
+              </p>
             </div>
           </div>
 
-          {/* Visualization Section */}
+          {needsPayment && (
+             <div className="p-8 bg-indigo-50 border-2 border-indigo-200 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in">
+                <div className="space-y-2 text-center md:text-left">
+                   <h4 className="text-xl font-black uppercase jakarta text-indigo-900">Payment Required</h4>
+                   <p className="text-sm font-medium text-indigo-600 italic">Our team has finalized the quote for your custom request.</p>
+                </div>
+                <button 
+                  onClick={() => onTriggerCheckout?.(submission.id, plans[submission.plan]?.title || 'Staging Service', submission.quotedAmount!)}
+                  className="px-10 py-5 bg-indigo-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-600 transition-all"
+                >
+                  Complete Payment Now
+                </button>
+             </div>
+          )}
+
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
               <div className="space-y-3 w-full">
-                <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter jakarta">Comparison</h3>
-                {isBoth && (
+                <h3 className="text-2xl md:text-3xl font-black text-slate-900 uppercase tracking-tighter jakarta">Project Visualization</h3>
+                {isBoth && submission.status !== 'quote_request' && (
                   <div className="flex bg-slate-100 p-1 rounded-xl w-full md:w-fit">
                     <button onClick={() => setActiveStage('remove')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'remove' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>01. Remove</button>
                     <button onClick={() => setActiveStage('add')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeStage === 'add' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>02. Staging</button>
@@ -117,7 +138,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
               </div>
             </div>
 
-            {/* Slider Engine */}
             <div 
               className="relative w-full aspect-[4/3] md:aspect-video rounded-3xl overflow-hidden bg-slate-100 shadow-xl group cursor-ew-resize touch-none select-none border border-slate-100" 
               ref={containerRef}
@@ -139,13 +159,17 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
                 </>
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-200">
-                  <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-300 rounded-full animate-spin mb-4"></div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em]">Rendering Visuals</p>
+                  <img src={submission.dataUrl} className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale" alt="" />
+                  <div className="relative z-10 flex flex-col items-center">
+                    <div className="w-10 h-10 border-4 border-slate-100 border-t-slate-900 rounded-full animate-spin mb-4"></div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-900 bg-white/80 backdrop-blur px-4 py-2 rounded-lg shadow-sm">
+                      {submission.status === 'quote_request' ? 'Awaiting Quote Confirmation' : 'In Production'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Action Buttons for Mobile */}
             <div className="grid grid-cols-2 gap-4">
               <button onClick={() => handleDownload(submission.dataUrl, 'SOURCE')} className="py-4 border-2 border-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Download Source</button>
               {afterImageUrl && (
@@ -153,23 +177,6 @@ export const DetailModal: React.FC<DetailModalProps> = ({ submission, onClose })
               )}
             </div>
           </div>
-
-          {/* Reference Showcase */}
-          {submission.referenceImages && submission.referenceImages.length > 0 && (
-            <div className="space-y-6 pt-10 border-t border-slate-100">
-              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Style References</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {submission.referenceImages.map((ref) => (
-                  <div key={ref.id} className="aspect-square rounded-2xl overflow-hidden bg-slate-50 relative group">
-                    <img src={ref.dataUrl} className="w-full h-full object-cover" alt="Ref" />
-                    <button onClick={() => handleDownload(ref.dataUrl, 'REF')} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
