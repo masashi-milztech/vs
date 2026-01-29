@@ -88,6 +88,42 @@ export const db = {
       if (error) throw error;
     }
   },
+  plans: {
+    async fetchAll() {
+      const { data, error } = await supabase.from('plans').select('*').order('number', { ascending: true });
+      if (error && error.code === 'PGRST204') return [];
+      if (error) throw error;
+      return data || [];
+    },
+    async insert(plan: any) {
+      const { error } = await supabase.from('plans').insert([plan]);
+      if (error) throw error;
+    },
+    async update(id: string, updates: any) {
+      const { error } = await supabase.from('plans').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('plans').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  archive: {
+    async fetchAll() {
+      const { data, error } = await supabase.from('archive_projects').select('*').order('timestamp', { ascending: false });
+      if (error && error.code === 'PGRST204') return [];
+      if (error) throw error;
+      return data || [];
+    },
+    async insert(project: any) {
+      const { error } = await supabase.from('archive_projects').insert([project]);
+      if (error) throw error;
+    },
+    async delete(id: string) {
+      const { error } = await supabase.from('archive_projects').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
   editors: {
     async fetchAll() {
       const { data, error } = await supabase.from('editors').select('*').order('name');
@@ -112,7 +148,6 @@ export const db = {
         .order('timestamp', { ascending: true });
       
       if (error) {
-        // テーブルが存在しないエラー(PGRST205)の場合は空配列を返し、上位でハンドリング
         if (error.code === 'PGRST205') return { error: 'TABLE_MISSING' };
         console.error("Fetch Messages Error:", error);
         return [];
