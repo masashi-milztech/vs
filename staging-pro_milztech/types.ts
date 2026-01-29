@@ -2,7 +2,17 @@
 export enum PlanType {
   FURNITURE_REMOVE = 'FURNITURE_REMOVE',
   FURNITURE_ADD = 'FURNITURE_ADD',
-  FURNITURE_BOTH = 'FURNITURE_BOTH'
+  FURNITURE_BOTH = 'FURNITURE_BOTH',
+  FLOOR_PLAN_CG = 'FLOOR_PLAN_CG'
+}
+
+export interface Plan {
+  id: string;
+  title: string;
+  description: string;
+  price: string;
+  amount: number;
+  number: string;
 }
 
 export interface User {
@@ -10,6 +20,16 @@ export interface User {
   email: string;
   role: 'admin' | 'editor' | 'user';
   editorRecordId?: string; 
+}
+
+export interface ArchiveProject {
+  id: string;
+  title: string;
+  category: string;
+  beforeurl: string;
+  afterurl: string;
+  description: string;
+  timestamp: number;
 }
 
 export interface Editor {
@@ -28,14 +48,10 @@ export interface ReferenceImage {
 
 export interface Message {
   id: string;
-  submissionId?: string;
-  submission_id?: string; // DB column
-  senderId?: string;
-  sender_id?: string; // DB column
-  senderName?: string;
-  sender_name?: string; // DB column
-  senderRole?: string;
-  sender_role?: string; // DB column
+  submission_id?: string;
+  sender_id?: string;
+  sender_name?: string;
+  sender_role?: string;
   content: string;
   timestamp: number;
 }
@@ -48,21 +64,23 @@ export interface Submission {
   fileName: string;
   fileSize: number;
   dataUrl: string; 
-  resultDataUrl?: string; // Legacy/Main result
-  resultRemoveUrl?: string; // For BOTH plan - Removal stage result
-  resultAddUrl?: string; // For BOTH plan or ADD plan - Final stage result
+  resultDataUrl?: string;
+  resultRemoveUrl?: string;
+  resultAddUrl?: string;
   instructions?: string; 
   revisionNotes?: string; 
   referenceImages?: ReferenceImage[]; 
   timestamp: number;
-  status: 'pending' | 'processing' | 'reviewing' | 'completed';
-  paymentStatus: 'unpaid' | 'paid';
+  status: 'pending' | 'processing' | 'reviewing' | 'completed' | 'quote_request';
+  paymentStatus: 'unpaid' | 'paid' | 'quote_pending';
   stripeSessionId?: string;
   assignedEditorId?: string;
+  quotedAmount?: number; // Added for custom quotes
 }
 
-export const PLAN_DETAILS: Record<string, any> = {
+export const DEFAULT_PLANS: Record<string, Plan> = {
   [PlanType.FURNITURE_REMOVE]: {
+    id: PlanType.FURNITURE_REMOVE,
     title: 'Furniture Removal',
     description: 'Advanced removal of existing assets. We clean the digital canvas to reveal the structural potential of your space.',
     price: '$35',
@@ -70,6 +88,7 @@ export const PLAN_DETAILS: Record<string, any> = {
     number: '01'
   },
   [PlanType.FURNITURE_ADD]: {
+    id: PlanType.FURNITURE_ADD,
     title: 'Furniture Addition',
     description: 'Precision staging for vacant rooms. Curated sets selected by architectural visualizers to maximize market value.',
     price: '$35',
@@ -77,11 +96,20 @@ export const PLAN_DETAILS: Record<string, any> = {
     number: '02'
   },
   [PlanType.FURNITURE_BOTH]: {
+    id: PlanType.FURNITURE_BOTH,
     title: 'Full Staging (Both)',
     description: 'Complete spatial overhaul. Existing items are removed and replaced with elite, high-resolution digital staging.',
     price: '$60',
     amount: 6000,
     number: '03'
+  },
+  [PlanType.FLOOR_PLAN_CG]: {
+    id: PlanType.FLOOR_PLAN_CG,
+    title: '3D Floor Plan (Overhead)',
+    description: 'Transformation of 2D floor plans into high-end 3D overhead visualizations. Comprehensive spatial modeling based on architectural drawings.',
+    price: 'Custom Quote',
+    amount: 0,
+    number: '04'
   }
 };
 
