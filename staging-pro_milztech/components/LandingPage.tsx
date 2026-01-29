@@ -154,7 +154,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart, archiveProjec
                  </div>
                </div>
                <button onClick={() => { setViewingProject(null); setShowExplorer(false); }} className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-900 hover:text-white transition-all">
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></button>
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 md:p-12 no-scrollbar space-y-16">
