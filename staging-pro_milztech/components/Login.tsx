@@ -35,15 +35,14 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) {
           if (signInError.message.includes('Email not confirmed')) {
-            throw new Error('Verification Required. \n確認メールのリンクをクリックして有効化してください。');
+            throw new Error('Verification Required. \nPlease check your inbox and click the activation link to continue.');
           }
           if (signInError.message.includes('Invalid login credentials')) {
-            throw new Error('Authentication Failed. \nパスワードが正しくないか、アカウントが存在しません。');
+            throw new Error('Authentication Failed. \nInvalid password or account does not exist.');
           }
           throw signInError;
         }
       } else {
-        // 現在のドメインを取得（milz.techなど）
         const redirectUrl = window.location.origin;
         
         const { error: signUpError, data } = await supabase.auth.signUp({ 
@@ -53,7 +52,7 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
             data: {
               role: isAdmin(email) ? 'admin' : 'user'
             },
-            emailRedirectTo: redirectUrl // ここで明示的に現在のURLを指定
+            emailRedirectTo: redirectUrl
           }
         });
         
@@ -62,7 +61,7 @@ export const Login: React.FC<LoginProps> = ({ onBack }) => {
         }
         
         if (data.user && data.session === null) {
-          setSuccessMsg('Studio Invitation Dispatched. \n認証メールを送信しました。リンクをクリックしてStudioへの参加を確定させてください。');
+          setSuccessMsg('Studio Invitation Dispatched. \nWe have sent a verification email. Please click the link to confirm your studio membership.');
         } else {
           setSuccessMsg('Account authorized. Redirecting to your archive...');
           setTimeout(() => window.location.reload(), 1000);
